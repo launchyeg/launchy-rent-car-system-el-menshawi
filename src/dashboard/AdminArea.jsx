@@ -8,6 +8,7 @@ import CarsPage from "../pages/dashboard/CarsPage";
 import InsurancePage from "../pages/dashboard/InsurancePage";
 import LicensesPage from "../pages/dashboard/LicensesPage";
 import MaintenancePage from "../pages/dashboard/MaintenancePage";
+import BookingsPage from "../pages/dashboard/BookingsPage";
 import Placeholder from "../pages/dashboard/Placeholder";
 
 // Everything that needs Supabase (auth + all dashboard data) lives behind
@@ -35,10 +36,7 @@ export default function AdminArea() {
             <Route path="insurance" element={<InsurancePage />} />
             <Route path="licenses" element={<LicensesPage />} />
             <Route path="maintenance" element={<MaintenancePage />} />
-            <Route
-              path="bookings"
-              element={<Placeholder title="الحجوزات" />}
-            />
+            <Route path="bookings" element={<BookingsPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

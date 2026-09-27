@@ -4,7 +4,7 @@
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-function daysUntil(dateString, today = new Date()) {
+export function daysUntil(dateString, today = new Date()) {
   const target = new Date(`${dateString}T00:00:00`);
   const startOfToday = new Date(
     today.getFullYear(),
