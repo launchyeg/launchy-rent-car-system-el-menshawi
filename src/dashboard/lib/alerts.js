@@ -19,9 +19,6 @@ function daysUntil(dateString, today = new Date()) {
 export const INSURANCE_DUE_DAYS = 7;
 export const INSURANCE_APPROACHING_DAYS = 30;
 
-export const OIL_DUE_DAYS = 7;
-export const OIL_APPROACHING_DAYS = 21;
-
 function statusFromDays(
   days,
   { dueDays, approachingDays, expiredLabel, dueLabel, approachingLabel, okLabel },
@@ -62,23 +59,30 @@ export function getLicenseStatus(expiryDate, today) {
   });
 }
 
-// Date-only by design: nothing in the system captures a car's *current*
-// odometer reading yet (no telematics, no check-in/out mileage capture),
-// so a mileage-based status can't be evaluated automatically. odometer
-// fields are still recorded on the record for history/reference.
-export function getOilStatus(nextChangeDate, today) {
-  if (!nextChangeDate) {
-    return { level: "none", tone: "gray", days: null, label: "لا يوجد سجل" };
+// Mileage-based by design: the owner records the odometer reading at each
+// visit and a target for the next change; the badge is only as fresh as
+// that reading — it doesn't move on its own between visits the way a
+// date-based status would, so re-editing the record with the current
+// reading is what keeps this accurate.
+export const OIL_DUE_KM = 1000;
+
+export function getOilStatus(odometerKm, nextChangeOdometerKm) {
+  if (odometerKm == null || nextChangeOdometerKm == null) {
+    return { level: "none", tone: "gray", remainingKm: null, label: "لا يوجد سجل" };
   }
-  const days = daysUntil(nextChangeDate, today);
-  return statusFromDays(days, {
-    dueDays: OIL_DUE_DAYS,
-    approachingDays: OIL_APPROACHING_DAYS,
-    expiredLabel: "متأخر",
-    dueLabel: `مستحق خلال ${days} ${days === 1 ? "يوم" : "أيام"}`,
-    approachingLabel: `يقترب الاستحقاق (${days} يوم)`,
-    okLabel: "جيد",
-  });
+  const remainingKm = nextChangeOdometerKm - odometerKm;
+  if (remainingKm <= 0) {
+    return { level: "overdue", tone: "red", remainingKm, label: "متأخر" };
+  }
+  if (remainingKm <= OIL_DUE_KM) {
+    return {
+      level: "due",
+      tone: "orange",
+      remainingKm,
+      label: `باقي ${remainingKm} كم`,
+    };
+  }
+  return { level: "ok", tone: "green", remainingKm, label: "جيد" };
 }
 
 // Bookings aren't an expiry concept — just facts about today, computed

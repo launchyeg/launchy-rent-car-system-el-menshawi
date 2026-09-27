@@ -72,23 +72,23 @@ create index if not exists license_renewals_car_id_idx on license_renewals (car_
 create index if not exists license_renewals_expiry_date_idx on license_renewals (expiry_date);
 
 -- ---------------------------------------------------------------------
--- oil_changes — maintenance is intentionally just oil changes in v1
+-- oil_changes — maintenance is intentionally just oil changes in v1.
+-- Tracked by mileage, not date: the owner records the odometer reading at
+-- each visit and a target reading for the next change; getOilStatus()
+-- compares the two, so both are required.
 -- ---------------------------------------------------------------------
 create table if not exists oil_changes (
   id uuid primary key default gen_random_uuid(),
   car_id uuid not null references cars (id) on delete cascade,
-  change_date date not null,
-  odometer_km integer,
-  oil_type text,
+  odometer_km integer not null,
+  next_change_odometer_km integer not null,
   cost numeric,
-  next_change_odometer_km integer,
-  next_change_date date not null,
   notes text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-create index if not exists oil_changes_car_id_change_date_idx on oil_changes (car_id, change_date desc);
+create index if not exists oil_changes_car_id_idx on oil_changes (car_id);
 
 -- ---------------------------------------------------------------------
 -- bookings — v1 is deliberately simple: no customer accounts, no payments
