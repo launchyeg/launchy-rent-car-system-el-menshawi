@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
@@ -14,6 +14,25 @@ export default function DashboardLayout() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // dir="rtl"/lang="ar" below only apply to this subtree — but native
+  // controls like <input type="date"> take their displayed format (e.g.
+  // mm/dd/yyyy vs dd/mm/yyyy) from the document's root <html lang>, not
+  // from an ancestor element's lang. index.html hard-codes lang="en" for
+  // the public site, so it's flipped here for as long as the dashboard is
+  // mounted, and restored on the way out (back to the public site, or to
+  // the still-English /login).
+  useEffect(() => {
+    const root = document.documentElement;
+    const previousLang = root.lang;
+    const previousDir = root.dir;
+    root.lang = "ar";
+    root.dir = "rtl";
+    return () => {
+      root.lang = previousLang;
+      root.dir = previousDir;
+    };
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
