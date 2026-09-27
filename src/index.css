@@ -28,6 +28,14 @@
   --font-heading: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
   --font-body: "Inter", system-ui, -apple-system, sans-serif;
 
+  /*
+    Arabic UI font for the admin dashboard only (the public site above
+    stays Latin/LTR). The actual font file is fetched lazily from
+    src/dashboard/dashboard.css, loaded only when the dashboard chunk
+    loads, so this token alone adds no network cost to the public site.
+  */
+  --font-arabic: "Tajawal", "Inter", system-ui, sans-serif;
+
   --shadow-card: 0 8px 24px rgba(14, 17, 22, 0.06);
   --shadow-card-hover: 0 16px 40px rgba(14, 17, 22, 0.12);
 }

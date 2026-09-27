@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { FiMenu, FiPhone, FiX } from "react-icons/fi";
 import { LuUserRound } from "react-icons/lu";
 import Brand from "./Brand";
@@ -46,13 +47,13 @@ export default function Navbar({ brand, links, contactCta }) {
             {contactCta.label}
             <FiPhone aria-hidden="true" />
           </a>
-          <button
-            type="button"
+          <Link
+            to="/login"
             className="hidden h-10.5 w-10.5 items-center justify-center rounded-full border border-border hover:border-ink transition-colors text-ink min-[900px]:inline-flex"
-            aria-label="Account"
+            aria-label="Admin login"
           >
             <LuUserRound aria-hidden="true" />
-          </button>
+          </Link>
           <button
             type="button"
             className={`inline-flex h-10.5 w-10.5 items-center justify-center rounded-full border text-lg transition-colors min-[900px]:hidden ${
@@ -121,14 +122,14 @@ export default function Navbar({ brand, links, contactCta }) {
                   {contactCta.label}
                   <FiPhone aria-hidden="true" />
                 </a>
-                <a
-                  href="#"
+                <Link
+                  to="/login"
                   className="btn btn-outline mt-2 w-full"
                   onClick={() => setIsOpen(false)}
                 >
                   Admin
                   <LuUserRound aria-hidden="true" />
-                </a>
+                </Link>
               </div>
             </motion.nav>
           </>
