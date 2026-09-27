@@ -46,7 +46,13 @@ function carLabel(car) {
 // `cars` is the fleet list, passed down from InsurancePage so the car
 // picker doesn't need its own fetch. Rendered fresh per open (keyed by
 // record?.id ?? "new"), so local state only needs to initialize once.
-export default function InsuranceForm({ record, cars, onSubmit, onCancel, submitting }) {
+export default function InsuranceForm({
+  record,
+  cars,
+  onSubmit,
+  onCancel,
+  submitting,
+}) {
   const [values, setValues] = useState(() => toFormValues(record));
 
   const handleChange = (field) => (event) => {
@@ -83,6 +89,7 @@ export default function InsuranceForm({ record, cars, onSubmit, onCancel, submit
           <input
             type="text"
             value={values.provider}
+            placeholder="مثال: مصر للتأمين"
             onChange={handleChange("provider")}
             className="w-full text-sm outline-none placeholder:text-ink-faint"
           />
@@ -91,6 +98,7 @@ export default function InsuranceForm({ record, cars, onSubmit, onCancel, submit
           <input
             type="text"
             value={values.policy_number}
+            placeholder="مثال: **** "
             onChange={handleChange("policy_number")}
             className="w-full text-sm outline-none placeholder:text-ink-faint"
           />
@@ -105,6 +113,7 @@ export default function InsuranceForm({ record, cars, onSubmit, onCancel, submit
             min="0"
             step="0.01"
             value={values.price}
+            placeholder="مثال: 90000 "
             onChange={handleChange("price")}
             className="w-full text-sm outline-none placeholder:text-ink-faint"
           />

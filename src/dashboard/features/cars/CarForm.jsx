@@ -92,6 +92,7 @@ export default function CarForm({ car, onSubmit, onCancel, submitting }) {
             type="number"
             min="1990"
             max="2100"
+            placeholder="مثال: 2026"
             value={values.year}
             onChange={handleChange("year")}
             className="w-full text-sm outline-none placeholder:text-ink-faint"

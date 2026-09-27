@@ -100,7 +100,11 @@ export default function MaintenancePage() {
 
   const columns = [
     { key: "index", header: "#", render: (_record, index) => index + 1 },
-    { key: "car", header: "السيارة", render: (record) => carLabel(record.cars) },
+    {
+      key: "car",
+      header: "السيارة",
+      render: (record) => carLabel(record.cars),
+    },
     {
       key: "odometer",
       header: "قراءة العداد الحالية",
@@ -120,7 +124,10 @@ export default function MaintenancePage() {
       key: "status",
       header: "الحالة",
       render: (record) => {
-        const status = getOilStatus(record.odometer_km, record.next_change_odometer_km);
+        const status = getOilStatus(
+          record.odometer_km,
+          record.next_change_odometer_km,
+        );
         return <StatusBadge label={status.label} tone={status.tone} />;
       },
     },
@@ -137,7 +144,7 @@ export default function MaintenancePage() {
           className="btn btn-primary disabled:opacity-60"
         >
           <FiPlus aria-hidden="true" />
-          إضافة تغيير زيت
+          إضافة صيانة
         </button>
       </div>
 
@@ -161,7 +168,7 @@ export default function MaintenancePage() {
               className="btn btn-primary mt-2"
             >
               <FiPlus aria-hidden="true" />
-              إضافة تغيير زيت
+              إضافة صيانة
             </button>
           }
         />
@@ -195,7 +202,7 @@ export default function MaintenancePage() {
       <Modal
         open={formOpen}
         onClose={() => setFormOpen(false)}
-        title={editingRecord ? "تعديل سجل تغيير الزيت" : "إضافة تغيير زيت"}
+        title={editingRecord ? "تعديل سجل صيانة السيارة" : "إضافة صيانة"}
       >
         <OilChangeForm
           key={editingRecord?.id ?? "new"}

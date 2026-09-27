@@ -42,7 +42,13 @@ function carLabel(car) {
 // only needs to initialize once per mount. Both odometer readings are
 // required now — they're what getOilStatus() compares to compute the
 // badge, so a record without them can't produce a meaningful status.
-export default function OilChangeForm({ record, cars, onSubmit, onCancel, submitting }) {
+export default function OilChangeForm({
+  record,
+  cars,
+  onSubmit,
+  onCancel,
+  submitting,
+}) {
   const [values, setValues] = useState(() => toFormValues(record));
 
   const handleChange = (field) => (event) => {

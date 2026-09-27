@@ -51,7 +51,13 @@ function carLabel(car) {
 // `cars` is the fleet list, passed down from LicensesPage. Rendered fresh
 // per open (keyed by record?.id ?? "new"), so local state below only
 // needs to initialize once per mount.
-export default function LicenseForm({ record, cars, onSubmit, onCancel, submitting }) {
+export default function LicenseForm({
+  record,
+  cars,
+  onSubmit,
+  onCancel,
+  submitting,
+}) {
   const [values, setValues] = useState(() => toFormValues(record));
 
   const handleChange = (field) => (event) => {
@@ -116,6 +122,7 @@ export default function LicenseForm({ record, cars, onSubmit, onCancel, submitti
           min="0"
           step="0.01"
           value={values.cost}
+          placeholder="اختياري"
           onChange={handleChange("cost")}
           className="w-full text-sm outline-none placeholder:text-ink-faint"
         />

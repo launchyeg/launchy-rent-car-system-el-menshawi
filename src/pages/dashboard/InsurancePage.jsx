@@ -101,7 +101,11 @@ export default function InsurancePage() {
 
   const columns = [
     { key: "index", header: "#", render: (_record, index) => index + 1 },
-    { key: "car", header: "السيارة", render: (record) => carLabel(record.cars) },
+    {
+      key: "car",
+      header: "السيارة",
+      render: (record) => carLabel(record.cars),
+    },
     {
       key: "provider",
       header: "شركة التأمين",

@@ -40,7 +40,13 @@ function carLabel(car) {
 // `cars` is the fleet list, passed down from BookingsPage. Rendered fresh
 // per open (keyed by record?.id ?? "new"), so local state below only
 // needs to initialize once per mount.
-export default function BookingForm({ record, cars, onSubmit, onCancel, submitting }) {
+export default function BookingForm({
+  record,
+  cars,
+  onSubmit,
+  onCancel,
+  submitting,
+}) {
   const [values, setValues] = useState(() => toFormValues(record));
   const [error, setError] = useState("");
 
@@ -84,6 +90,7 @@ export default function BookingForm({ record, cars, onSubmit, onCancel, submitti
             type="text"
             required
             value={values.customer_name}
+            placeholder="مثال: احمد محمد "
             onChange={handleChange("customer_name")}
             className="w-full text-sm outline-none placeholder:text-ink-faint"
           />

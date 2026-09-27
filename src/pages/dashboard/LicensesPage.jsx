@@ -102,7 +102,11 @@ export default function LicensesPage() {
 
   const columns = [
     { key: "index", header: "#", render: (_record, index) => index + 1 },
-    { key: "car", header: "السيارة", render: (record) => carLabel(record.cars) },
+    {
+      key: "car",
+      header: "السيارة",
+      render: (record) => carLabel(record.cars),
+    },
     {
       key: "renewal",
       header: "تاريخ التجديد",
@@ -118,7 +122,11 @@ export default function LicensesPage() {
       header: "تاريخ الانتهاء",
       render: (record) => formatDate(record.expiry_date),
     },
-    { key: "cost", header: "التكلفة", render: (record) => `${record.cost} ج.م` },
+    {
+      key: "cost",
+      header: "التكلفة",
+      render: (record) => `${record.cost} ج.م`,
+    },
     {
       key: "status",
       header: "الحالة",
@@ -140,7 +148,7 @@ export default function LicensesPage() {
           className="btn btn-primary disabled:opacity-60"
         >
           <FiPlus aria-hidden="true" />
-          إضافة تجديد
+          إضافة رخصة
         </button>
       </div>
 
@@ -198,7 +206,7 @@ export default function LicensesPage() {
       <Modal
         open={formOpen}
         onClose={() => setFormOpen(false)}
-        title={editingRecord ? "تعديل سجل الرخصة" : "إضافة تجديد رخصة"}
+        title={editingRecord ? "تعديل سجل الرخصة" : "إضافة رخصة"}
       >
         <LicenseForm
           key={editingRecord?.id ?? "new"}
