@@ -4,12 +4,12 @@ import RequireAuth from "./auth/RequireAuth";
 import DashboardLayout from "./layout/DashboardLayout";
 import { ToastProvider } from "./ui/Toast";
 import LoginPage from "../pages/LoginPage";
+import DashboardHome from "../pages/dashboard/DashboardHome";
 import CarsPage from "../pages/dashboard/CarsPage";
 import InsurancePage from "../pages/dashboard/InsurancePage";
 import LicensesPage from "../pages/dashboard/LicensesPage";
 import MaintenancePage from "../pages/dashboard/MaintenancePage";
 import BookingsPage from "../pages/dashboard/BookingsPage";
-import Placeholder from "../pages/dashboard/Placeholder";
 
 // Everything that needs Supabase (auth + all dashboard data) lives behind
 // this one lazy-loaded boundary (see App.jsx), so a visitor to the public
@@ -31,7 +31,7 @@ export default function AdminArea() {
               </RequireAuth>
             }
           >
-            <Route index element={<Placeholder title="لوحة التحكم" />} />
+            <Route index element={<DashboardHome />} />
             <Route path="cars" element={<CarsPage />} />
             <Route path="insurance" element={<InsurancePage />} />
             <Route path="licenses" element={<LicensesPage />} />
