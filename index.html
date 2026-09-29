@@ -8,6 +8,16 @@
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://elmenshawirentcar.com/" />
 
+    <!--
+      PWA manifest — scoped to /dashboard only (see manifest.webmanifest),
+      so this tag being present on every page (single SPA, one index.html)
+      does not prompt public-site visitors to install anything; browsers
+      only offer the install prompt when the current URL falls inside the
+      manifest's declared scope.
+    -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
     <title>El Menshawi Rent Car — Car Rental in Hurghada, Egypt</title>
     <meta
       name="description"

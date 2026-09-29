@@ -103,3 +103,52 @@ export function getBookingFlags(pickupDate, returnDate, today = new Date()) {
     isCurrentlyBooked: pickup <= startOfToday && startOfToday <= dropoff,
   };
 }
+
+// تسليم (delivery to the client) = pickup_date. استلام (receipt from the
+// client) = return_date. Single source of truth for the booking alert
+// window, reused by BookingsPage, DashboardHome, and the WhatsApp digest
+// (ported there since it runs in a separate Deno runtime) so all three
+// stay consistent. Symmetric on both sides: an alert fires on the day of
+// either event, or once BOOKING_ALERT_WINDOW_DAYS or fewer days remain —
+// never earlier, and never for a booking outside its active window.
+export const BOOKING_ALERT_WINDOW_DAYS = 3;
+
+export function getBookingAlert(pickupDate, returnDate, today = new Date()) {
+  const { isPickupToday, isReturnToday, isCurrentlyBooked } = getBookingFlags(
+    pickupDate,
+    returnDate,
+    today,
+  );
+
+  if (isReturnToday) {
+    return { type: "return", tone: "orange", days: 0, label: "استلام اليوم" };
+  }
+  if (isPickupToday) {
+    return { type: "pickup", tone: "primary", days: 0, label: "تسليم اليوم" };
+  }
+
+  if (isCurrentlyBooked) {
+    const daysToReturn = daysUntil(returnDate, today);
+    if (daysToReturn > 0 && daysToReturn <= BOOKING_ALERT_WINDOW_DAYS) {
+      return {
+        type: "return",
+        tone: "yellow",
+        days: daysToReturn,
+        label: `يتبقى ${daysToReturn} ${daysToReturn === 1 ? "يوم" : "أيام"} للاستلام من العميل`,
+      };
+    }
+    return null;
+  }
+
+  const daysToPickup = daysUntil(pickupDate, today);
+  if (daysToPickup > 0 && daysToPickup <= BOOKING_ALERT_WINDOW_DAYS) {
+    return {
+      type: "pickup",
+      tone: "yellow",
+      days: daysToPickup,
+      label: `يتبقى ${daysToPickup} ${daysToPickup === 1 ? "يوم" : "أيام"} للتسليم`,
+    };
+  }
+
+  return null;
+}
