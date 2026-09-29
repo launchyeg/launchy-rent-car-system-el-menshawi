@@ -52,7 +52,7 @@ export default function DashboardLayout() {
       <div
         dir="rtl"
         lang="ar"
-        className="font-arabic flex min-h-screen bg-surface-alt text-ink"
+        className="font-arabic flex min-h-screen overflow-x-hidden bg-surface-alt text-ink"
       >
         <aside className="hidden w-64 shrink-0 border-e border-border-soft bg-white lg:block">
           <Sidebar />
@@ -64,7 +64,7 @@ export default function DashboardLayout() {
             userEmail={user?.email}
             onSignOut={handleSignOut}
           />
-          <main className="flex-1 p-6">
+          <main className="min-w-0 flex-1 overflow-x-hidden p-6">
             <Outlet />
           </main>
         </div>

@@ -109,6 +109,31 @@ create index if not exists bookings_car_id_idx on bookings (car_id);
 create index if not exists bookings_date_range_idx on bookings (pickup_date, return_date);
 
 -- ---------------------------------------------------------------------
+-- push_subscriptions — one row per device/browser that enabled push
+-- notifications from the dashboard (see src/dashboard/pwa/pushSubscription.js).
+-- ---------------------------------------------------------------------
+create table if not exists push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz not null default now()
+);
+
+-- ---------------------------------------------------------------------
+-- notification_log — which alerts have already been pushed, so the
+-- periodic check (supabase/functions/push-alerts) only pushes genuinely
+-- new ones. A row is deleted once its alert resolves, so a later
+-- re-occurrence (e.g. insurance renewed, then expires again next year)
+-- pushes again instead of staying silenced forever.
+-- ---------------------------------------------------------------------
+create table if not exists notification_log (
+  id uuid primary key default gen_random_uuid(),
+  alert_key text not null unique,
+  sent_at timestamptz not null default now()
+);
+
+-- ---------------------------------------------------------------------
 -- Row Level Security — single-admin v1: any authenticated user has full
 -- access, no one else (anon key is only ever used for the login call).
 -- ---------------------------------------------------------------------
@@ -117,6 +142,8 @@ alter table insurance_records enable row level security;
 alter table license_renewals enable row level security;
 alter table oil_changes enable row level security;
 alter table bookings enable row level security;
+alter table push_subscriptions enable row level security;
+alter table notification_log enable row level security;
 
 drop policy if exists "authenticated full access" on cars;
 create policy "authenticated full access" on cars
@@ -136,6 +163,14 @@ create policy "authenticated full access" on oil_changes
 
 drop policy if exists "authenticated full access" on bookings;
 create policy "authenticated full access" on bookings
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+drop policy if exists "authenticated full access" on push_subscriptions;
+create policy "authenticated full access" on push_subscriptions
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+drop policy if exists "authenticated full access" on notification_log;
+create policy "authenticated full access" on notification_log
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 -- ---------------------------------------------------------------------

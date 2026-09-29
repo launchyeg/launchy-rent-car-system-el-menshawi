@@ -11,10 +11,15 @@ const toneClasses = {
   primary: "bg-tag-bg text-primary",
 };
 
+// No whitespace-nowrap: most callers pass a short tag ("OK"), but several
+// booking/alert labels are full phrases (e.g. "يتبقى 1 يوم للاستلام من
+// العميل") — forcing those onto one un-wrappable line is exactly what
+// forces a table cell (and on some browsers, the whole page) wider than
+// the screen on mobile.
 export default function StatusBadge({ label, tone = "gray" }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap ${
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${
         toneClasses[tone] ?? toneClasses.gray
       }`}
     >

@@ -42,7 +42,7 @@ export default function DashboardHome() {
         <p className="text-sm text-ink-soft">جارٍ التحميل…</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             <StatCard label="إجمالي السيارات" value={cars.length} icon={FaCar} />
             <StatCard
               label="الحجوزات الحالية"

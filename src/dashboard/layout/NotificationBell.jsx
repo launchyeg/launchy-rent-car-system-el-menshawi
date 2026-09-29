@@ -1,6 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { FiBell } from "react-icons/fi";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FiBell, FiBellOff } from "react-icons/fi";
 import { useAlerts } from "../alerts/AlertsProvider";
+import {
+  enablePushNotifications,
+  getPushSubscriptionStatus,
+} from "../pwa/pushSubscription";
 
 const SEEN_STORAGE_KEY = "launchy-dashboard-seen-alerts";
 
@@ -40,7 +44,31 @@ export default function NotificationBell() {
   const { alerts, bookingAlerts } = useAlerts();
   const [open, setOpen] = useState(false);
   const [seenKeys, setSeenKeys] = useState(() => loadSeenKeys());
+  const [pushStatus, setPushStatus] = useState("checking");
+  const [enabling, setEnabling] = useState(false);
+  const [pushError, setPushError] = useState("");
   const containerRef = useRef(null);
+
+  const refreshPushStatus = useCallback(() => {
+    getPushSubscriptionStatus().then(setPushStatus);
+  }, []);
+
+  useEffect(() => {
+    refreshPushStatus();
+  }, [refreshPushStatus]);
+
+  const handleEnablePush = async () => {
+    setEnabling(true);
+    setPushError("");
+    try {
+      await enablePushNotifications();
+      setPushStatus("subscribed");
+    } catch (error) {
+      setPushError(error.message ?? "تعذّر تفعيل الإشعارات.");
+    } finally {
+      setEnabling(false);
+    }
+  };
 
   const items = useMemo(
     () => [
@@ -108,7 +136,15 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute end-0 z-50 mt-2 w-80 max-w-[90vw] overflow-hidden rounded-2xl border border-border-soft bg-white shadow-card-hover">
+        <div
+          className="fixed inset-0 z-110 bg-ink/40"
+          aria-hidden="true"
+          onClick={handleToggle}
+        />
+      )}
+
+      {open && (
+        <div className="absolute end-0 z-120 mt-2 w-80 max-w-[90vw] overflow-hidden rounded-2xl border border-border-soft bg-white shadow-card-hover">
           <div className="border-b border-border-soft px-4 py-3">
             <span className="font-heading text-sm font-bold text-ink">الإشعارات</span>
           </div>
@@ -133,6 +169,34 @@ export default function NotificationBell() {
               </ul>
             )}
           </div>
+
+          {pushStatus === "unsubscribed" && (
+            <div className="border-t border-border-soft px-4 py-3">
+              <button
+                type="button"
+                onClick={handleEnablePush}
+                disabled={enabling}
+                className="btn btn-primary w-full text-xs disabled:opacity-60"
+              >
+                {enabling ? "جارٍ التفعيل…" : "تفعيل إشعارات الهاتف"}
+              </button>
+              {pushError && (
+                <p className="mt-2 text-xs font-semibold text-red-600">{pushError}</p>
+              )}
+            </div>
+          )}
+          {pushStatus === "subscribed" && (
+            <div className="flex items-center gap-1.5 border-t border-border-soft px-4 py-3 text-xs font-semibold text-ink-soft">
+              <FiBell className="text-primary" aria-hidden="true" />
+              إشعارات الهاتف مفعّلة على هذا الجهاز
+            </div>
+          )}
+          {pushStatus === "unsupported" && (
+            <div className="flex items-center gap-1.5 border-t border-border-soft px-4 py-3 text-xs font-semibold text-ink-faint">
+              <FiBellOff aria-hidden="true" />
+              هذا المتصفح لا يدعم إشعارات الهاتف
+            </div>
+          )}
         </div>
       )}
     </div>
