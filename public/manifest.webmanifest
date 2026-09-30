@@ -1,6 +1,6 @@
 {
   "name": "Launchy Rent Car System",
-  "short_name": "Launchy Dashboard",
+  "short_name": "Launchy Rent Car System",
   "description": "Admin dashboard for El Menshawi Rent Car — Launchy Rent Car System",
   "start_url": "/dashboard",
   "scope": "/dashboard",
