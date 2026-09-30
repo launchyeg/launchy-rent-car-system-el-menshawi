@@ -73,6 +73,8 @@ export default function BookingsPage() {
   const [records, setRecords] = useState([]);
   const [cars, setCars] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [pickupDateFilter, setPickupDateFilter] = useState("");
+  const [returnDateFilter, setReturnDateFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
@@ -172,9 +174,10 @@ export default function BookingsPage() {
   ];
 
   const term = searchTerm.trim().toLowerCase();
-  const filteredRecords = term
-    ? records.filter((record) => bookingSearchText(record).includes(term))
-    : records;
+  const filteredRecords = records
+    .filter((record) => !term || bookingSearchText(record).includes(term))
+    .filter((record) => !pickupDateFilter || record.pickup_date === pickupDateFilter)
+    .filter((record) => !returnDateFilter || record.return_date === returnDateFilter);
 
   return (
     <div className="grid gap-5">
@@ -194,11 +197,41 @@ export default function BookingsPage() {
       <AlertLegend items={LEGEND_ITEMS} />
 
       {records.length > 0 && (
-        <SearchInput
-          value={searchTerm}
-          onChange={setSearchTerm}
-          placeholder="ابحث بالسيارة، اسم العميل، رقم الهاتف…"
-        />
+        <div className="grid gap-3">
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="ابحث بالسيارة، اسم العميل، رقم الهاتف…"
+          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold text-ink-soft">
+                بحث بتاريخ التسليم
+              </span>
+              <span className="flex items-center gap-2 rounded-lg border border-border bg-white px-3.5 py-2.5 transition-colors focus-within:border-primary">
+                <input
+                  type="date"
+                  value={pickupDateFilter}
+                  onChange={(event) => setPickupDateFilter(event.target.value)}
+                  className="w-full text-sm outline-none"
+                />
+              </span>
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold text-ink-soft">
+                بحث بتاريخ الاستلام
+              </span>
+              <span className="flex items-center gap-2 rounded-lg border border-border bg-white px-3.5 py-2.5 transition-colors focus-within:border-primary">
+                <input
+                  type="date"
+                  value={returnDateFilter}
+                  onChange={(event) => setReturnDateFilter(event.target.value)}
+                  className="w-full text-sm outline-none"
+                />
+              </span>
+            </label>
+          </div>
+        </div>
       )}
 
       {loading ? (
