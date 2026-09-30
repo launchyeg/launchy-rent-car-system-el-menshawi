@@ -20,9 +20,8 @@ const alertIcons = {
   oil: FiTool,
 };
 
-// All the data-fetching and alert computation now lives in AlertsProvider
-// (mounted in DashboardLayout, so the Topbar's NotificationBell reads the
-// exact same data) — this page just renders it.
+// All the data-fetching and alert computation lives in AlertsProvider
+// (mounted in DashboardLayout) — this page just renders it.
 export default function DashboardHome() {
   const { cars, bookings, alerts, bookingAlerts, loading } = useAlerts();
 

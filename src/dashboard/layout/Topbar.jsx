@@ -1,5 +1,4 @@
 import { FiLogOut, FiMenu } from "react-icons/fi";
-import NotificationBell from "./NotificationBell";
 
 export default function Topbar({ onMenuClick, userEmail, onSignOut }) {
   return (
@@ -17,17 +16,14 @@ export default function Topbar({ onMenuClick, userEmail, onSignOut }) {
         {userEmail}
       </span>
 
-      <div className="flex items-center gap-3">
-        <NotificationBell />
-        <button
-          type="button"
-          onClick={onSignOut}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink transition-colors hover:text-primary"
-        >
-          تسجيل الخروج
-          <FiLogOut aria-hidden="true" />
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={onSignOut}
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink transition-colors hover:text-primary"
+      >
+        تسجيل الخروج
+        <FiLogOut aria-hidden="true" />
+      </button>
     </header>
   );
 }

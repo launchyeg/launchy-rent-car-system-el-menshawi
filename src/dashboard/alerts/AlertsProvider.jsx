@@ -14,6 +14,12 @@ import { useToast } from "../ui/Toast";
 
 const AlertsContext = createContext(undefined);
 
+// How often DashboardHome re-checks in the background while it's open.
+// Actual phone notifications are handled separately, server-side, by
+// supabase/functions/push-alerts on its own 15-minute schedule — this is
+// just so the page itself stays current without a manual reload.
+const AUTO_REFRESH_INTERVAL_MS = 60 * 1000;
+
 function carLabel(car) {
   if (!car) return "—";
   return [car.make, car.model, car.year].filter(Boolean).join(" ");
@@ -39,9 +45,8 @@ function rankFor(level) {
 }
 
 // Fetches and computes every dashboard alert exactly once per refresh,
-// shared by DashboardHome and the Topbar's NotificationBell (and anything
-// else that needs it later) — instead of each consumer re-fetching all
-// five tables independently on every page.
+// shared by DashboardHome (and anything else that needs it later) —
+// instead of each consumer re-fetching all five tables independently.
 export function AlertsProvider({ children }) {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -141,6 +146,11 @@ export function AlertsProvider({ children }) {
 
   useEffect(() => {
     refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    const id = setInterval(refresh, AUTO_REFRESH_INTERVAL_MS);
+    return () => clearInterval(id);
   }, [refresh]);
 
   const value = { cars, bookings, alerts, bookingAlerts, loading, refresh };
