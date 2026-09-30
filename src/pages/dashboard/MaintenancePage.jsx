@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FiEdit2, FiPlus, FiTool, FiTrash2 } from "react-icons/fi";
 import DataTable from "../../dashboard/ui/DataTable";
 import StatusBadge from "../../dashboard/ui/StatusBadge";
+import AlertLegend from "../../dashboard/ui/AlertLegend";
 import Modal from "../../dashboard/ui/Modal";
 import ConfirmDialog from "../../dashboard/ui/ConfirmDialog";
 import EmptyState from "../../dashboard/ui/EmptyState";
@@ -20,6 +21,13 @@ function carLabel(car) {
   if (!car) return "—";
   return [car.make, car.model, car.year].filter(Boolean).join(" ");
 }
+
+const LEGEND_ITEMS = [
+  { tone: "red", label: "متأخر", condition: "تجاوزت السيارة المسافة المحددة لتغيير الزيت" },
+  { tone: "orange", label: "باقي N كم", condition: "متبقٍ 1000 كم أو أقل على التغيير القادم" },
+  { tone: "green", label: "جيد", condition: "متبقٍ أكثر من 1000 كم" },
+  { tone: "gray", label: "لا يوجد سجل", condition: "لم يُسجَّل تغيير زيت لهذه السيارة بعد" },
+];
 
 export default function MaintenancePage() {
   const { showToast } = useToast();
@@ -147,6 +155,8 @@ export default function MaintenancePage() {
           إضافة صيانة
         </button>
       </div>
+
+      <AlertLegend items={LEGEND_ITEMS} />
 
       {loading ? (
         <p className="text-sm text-ink-soft">جارٍ التحميل…</p>

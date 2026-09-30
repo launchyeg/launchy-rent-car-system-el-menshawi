@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FiCalendar, FiEdit2, FiPlus, FiTrash2 } from "react-icons/fi";
 import DataTable from "../../dashboard/ui/DataTable";
 import StatusBadge from "../../dashboard/ui/StatusBadge";
+import AlertLegend from "../../dashboard/ui/AlertLegend";
 import Modal from "../../dashboard/ui/Modal";
 import ConfirmDialog from "../../dashboard/ui/ConfirmDialog";
 import EmptyState from "../../dashboard/ui/EmptyState";
@@ -40,6 +41,24 @@ function bookingStatus(pickupDate, returnDate) {
   if (pickup > startOfToday) return { label: "قادمة", tone: "gray" };
   return { label: "منتهية", tone: "gray" };
 }
+
+const LEGEND_ITEMS = [
+  { tone: "primary", label: "تسليم اليوم", condition: "موعد تسليم السيارة للعميل هو اليوم" },
+  { tone: "orange", label: "استلام اليوم", condition: "موعد استلام السيارة من العميل هو اليوم" },
+  {
+    tone: "yellow",
+    label: "يتبقى N يوم للاستلام من العميل",
+    condition: "الحجز شغّال حاليًا، وباقي 3 أيام أو أقل على الاستلام",
+  },
+  { tone: "primary", label: "محجوزة حاليًا", condition: "السيارة مع العميل، وباقٍ أكثر من 3 أيام على الاستلام" },
+  {
+    tone: "yellow",
+    label: "يتبقى N يوم للتسليم",
+    condition: "لم يتم التسليم بعد، وباقي 3 أيام أو أقل",
+  },
+  { tone: "gray", label: "قادمة", condition: "لم يتم التسليم بعد، وباقٍ أكثر من 3 أيام" },
+  { tone: "gray", label: "منتهية", condition: "انتهى الحجز بالفعل (تاريخ الاستلام مضى)" },
+];
 
 export default function BookingsPage() {
   const { showToast } = useToast();
@@ -157,6 +176,8 @@ export default function BookingsPage() {
           إضافة حجز
         </button>
       </div>
+
+      <AlertLegend items={LEGEND_ITEMS} />
 
       {loading ? (
         <p className="text-sm text-ink-soft">جارٍ التحميل…</p>

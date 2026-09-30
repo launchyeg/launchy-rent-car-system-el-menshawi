@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FiEdit2, FiFileText, FiPlus, FiTrash2 } from "react-icons/fi";
 import DataTable from "../../dashboard/ui/DataTable";
 import StatusBadge from "../../dashboard/ui/StatusBadge";
+import AlertLegend from "../../dashboard/ui/AlertLegend";
 import Modal from "../../dashboard/ui/Modal";
 import ConfirmDialog from "../../dashboard/ui/ConfirmDialog";
 import EmptyState from "../../dashboard/ui/EmptyState";
@@ -22,6 +23,13 @@ function carLabel(car) {
   if (!car) return "—";
   return [car.make, car.model, car.year].filter(Boolean).join(" ");
 }
+
+const LEGEND_ITEMS = [
+  { tone: "red", label: "منتهية", condition: "تاريخ الانتهاء مضى بالفعل" },
+  { tone: "orange", label: "تنتهي قريبًا", condition: "تنتهي خلال 7 أيام أو أقل" },
+  { tone: "yellow", label: "تقترب من الانتهاء", condition: "تنتهي خلال 30 يوم أو أقل" },
+  { tone: "green", label: "سارية", condition: "متبقٍ أكثر من 30 يوم" },
+];
 
 export default function LicensesPage() {
   const { showToast } = useToast();
@@ -151,6 +159,8 @@ export default function LicensesPage() {
           إضافة رخصة
         </button>
       </div>
+
+      <AlertLegend items={LEGEND_ITEMS} />
 
       {loading ? (
         <p className="text-sm text-ink-soft">جارٍ التحميل…</p>

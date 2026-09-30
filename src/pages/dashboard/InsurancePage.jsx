@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FiEdit2, FiPlus, FiShield, FiTrash2 } from "react-icons/fi";
 import DataTable from "../../dashboard/ui/DataTable";
 import StatusBadge from "../../dashboard/ui/StatusBadge";
+import AlertLegend from "../../dashboard/ui/AlertLegend";
 import Modal from "../../dashboard/ui/Modal";
 import ConfirmDialog from "../../dashboard/ui/ConfirmDialog";
 import EmptyState from "../../dashboard/ui/EmptyState";
@@ -21,6 +22,13 @@ function carLabel(car) {
   if (!car) return "—";
   return [car.make, car.model, car.year].filter(Boolean).join(" ");
 }
+
+const LEGEND_ITEMS = [
+  { tone: "red", label: "منتهي", condition: "تاريخ الانتهاء مضى بالفعل" },
+  { tone: "orange", label: "قريب الانتهاء", condition: "ينتهي خلال 7 أيام أو أقل" },
+  { tone: "yellow", label: "يقترب من الانتهاء", condition: "ينتهي خلال 30 يوم أو أقل" },
+  { tone: "green", label: "ساري", condition: "متبقٍ أكثر من 30 يوم" },
+];
 
 export default function InsurancePage() {
   const { showToast } = useToast();
@@ -145,6 +153,8 @@ export default function InsurancePage() {
           إضافة تأمين
         </button>
       </div>
+
+      <AlertLegend items={LEGEND_ITEMS} />
 
       {loading ? (
         <p className="text-sm text-ink-soft">جارٍ التحميل…</p>
