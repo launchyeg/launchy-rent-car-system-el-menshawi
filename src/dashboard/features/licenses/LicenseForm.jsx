@@ -1,11 +1,10 @@
 import { useState } from "react";
 import FormField from "../../ui/FormField";
-import { LICENSE_DURATIONS } from "./licenseConstants";
 
 const emptyValues = {
   car_id: "",
   renewal_date: "",
-  duration_years: "1",
+  expiry_date: "",
   cost: "",
   notes: "",
 };
@@ -15,30 +14,17 @@ function toFormValues(record) {
   return {
     car_id: record.car_id ?? "",
     renewal_date: record.renewal_date ?? "",
-    duration_years: record.duration_years ? String(record.duration_years) : "1",
+    expiry_date: record.expiry_date ?? "",
     cost: record.cost ?? "",
     notes: record.notes ?? "",
   };
 }
 
-// Local-date arithmetic (no UTC conversion, unlike Date#toISOString) so a
-// renewal near midnight never silently shifts a day in either direction.
-function addYears(dateString, years) {
-  const date = new Date(`${dateString}T00:00:00`);
-  date.setFullYear(date.getFullYear() + years);
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
-
 function toPayload(values) {
-  const durationYears = Number(values.duration_years);
   return {
     car_id: values.car_id,
     renewal_date: values.renewal_date,
-    duration_years: durationYears,
-    expiry_date: addYears(values.renewal_date, durationYears),
+    expiry_date: values.expiry_date,
     cost: values.cost === "" ? null : Number(values.cost),
     notes: values.notes.trim() || null,
   };
@@ -99,19 +85,14 @@ export default function LicenseForm({
             className="w-full text-sm outline-none placeholder:text-ink-faint"
           />
         </FormField>
-        <FormField label="المدة" required>
-          <select
+        <FormField label="تاريخ الانتهاء" required>
+          <input
+            type="date"
             required
-            value={values.duration_years}
-            onChange={handleChange("duration_years")}
-            className="w-full bg-transparent text-sm text-ink outline-none"
-          >
-            {LICENSE_DURATIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            value={values.expiry_date}
+            onChange={handleChange("expiry_date")}
+            className="w-full text-sm outline-none placeholder:text-ink-faint"
+          />
         </FormField>
       </div>
 

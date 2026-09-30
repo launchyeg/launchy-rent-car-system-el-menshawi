@@ -57,10 +57,6 @@ create table if not exists license_renewals (
   id uuid primary key default gen_random_uuid(),
   car_id uuid not null references cars (id) on delete cascade,
   renewal_date date not null,
-  -- Egyptian vehicle licenses renew in fixed 1/2/3-year terms; the owner
-  -- picks the term and expiry_date is computed from it (see
-  -- LicenseForm.jsx), rather than being entered directly.
-  duration_years smallint not null default 1 check (duration_years in (1, 2, 3)),
   expiry_date date not null,
   cost numeric not null,
   notes text,

@@ -15,7 +15,6 @@ import {
   updateLicenseRenewal,
 } from "../../dashboard/features/licenses/licensesApi";
 import { listCars } from "../../dashboard/features/cars/carsApi";
-import { durationLabel } from "../../dashboard/features/licenses/licenseConstants";
 import { getLicenseStatus } from "../../dashboard/lib/alerts";
 import { formatDate } from "../../dashboard/lib/format";
 
@@ -119,11 +118,6 @@ export default function LicensesPage() {
       key: "renewal",
       header: "تاريخ التجديد",
       render: (record) => formatDate(record.renewal_date),
-    },
-    {
-      key: "duration",
-      header: "المدة",
-      render: (record) => durationLabel(record.duration_years),
     },
     {
       key: "expiry",
