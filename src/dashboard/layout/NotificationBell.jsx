@@ -144,7 +144,9 @@ export default function NotificationBell() {
       )}
 
       {open && (
-        <div className="absolute end-0 z-120 mt-2 w-80 max-w-[90vw] overflow-hidden rounded-2xl border border-border-soft bg-white shadow-card-hover">
+        <div
+          className="fixed inset-x-4 top-20 z-120 overflow-hidden rounded-2xl border border-border-soft bg-white shadow-card-hover sm:absolute sm:inset-x-auto sm:top-auto sm:end-0 sm:mt-2 sm:w-80"
+        >
           <div className="border-b border-border-soft px-4 py-3">
             <span className="font-heading text-sm font-bold text-ink">الإشعارات</span>
           </div>
