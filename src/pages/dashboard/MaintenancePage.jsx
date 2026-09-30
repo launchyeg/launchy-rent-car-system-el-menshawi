@@ -3,6 +3,7 @@ import { FiEdit2, FiPlus, FiTool, FiTrash2 } from "react-icons/fi";
 import DataTable from "../../dashboard/ui/DataTable";
 import StatusBadge from "../../dashboard/ui/StatusBadge";
 import AlertLegend from "../../dashboard/ui/AlertLegend";
+import SearchInput from "../../dashboard/ui/SearchInput";
 import Modal from "../../dashboard/ui/Modal";
 import ConfirmDialog from "../../dashboard/ui/ConfirmDialog";
 import EmptyState from "../../dashboard/ui/EmptyState";
@@ -29,10 +30,15 @@ const LEGEND_ITEMS = [
   { tone: "gray", label: "لا يوجد سجل", condition: "لم يُسجَّل تغيير زيت لهذه السيارة بعد" },
 ];
 
+function oilSearchText(record) {
+  return carLabel(record.cars).toLowerCase();
+}
+
 export default function MaintenancePage() {
   const { showToast } = useToast();
   const [records, setRecords] = useState([]);
   const [cars, setCars] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
@@ -141,6 +147,11 @@ export default function MaintenancePage() {
     },
   ];
 
+  const term = searchTerm.trim().toLowerCase();
+  const filteredRecords = term
+    ? records.filter((record) => oilSearchText(record).includes(term))
+    : records;
+
   return (
     <div className="grid gap-5">
       <div className="flex items-center justify-between gap-4">
@@ -157,6 +168,14 @@ export default function MaintenancePage() {
       </div>
 
       <AlertLegend items={LEGEND_ITEMS} />
+
+      {records.length > 0 && (
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="ابحث بالسيارة…"
+        />
+      )}
 
       {loading ? (
         <p className="text-sm text-ink-soft">جارٍ التحميل…</p>
@@ -185,7 +204,8 @@ export default function MaintenancePage() {
       ) : (
         <DataTable
           columns={columns}
-          rows={records}
+          rows={filteredRecords}
+          emptyMessage="لا توجد نتائج مطابقة للبحث."
           renderActions={(record) => (
             <>
               <button

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FiEdit2, FiPlus, FiTrash2 } from "react-icons/fi";
 import { FaCar } from "react-icons/fa6";
 import DataTable from "../../dashboard/ui/DataTable";
+import SearchInput from "../../dashboard/ui/SearchInput";
 import Modal from "../../dashboard/ui/Modal";
 import ConfirmDialog from "../../dashboard/ui/ConfirmDialog";
 import EmptyState from "../../dashboard/ui/EmptyState";
@@ -19,9 +20,24 @@ import {
   transmissionLabel,
 } from "../../dashboard/features/cars/carConstants";
 
+function carSearchText(car) {
+  return [
+    car.make,
+    car.model,
+    car.year,
+    categoryLabel(car.category),
+    transmissionLabel(car.transmission),
+    fuelTypeLabel(car.fuel_type),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
 export default function CarsPage() {
   const { showToast } = useToast();
   const [cars, setCars] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editingCar, setEditingCar] = useState(null);
@@ -119,6 +135,11 @@ export default function CarsPage() {
     { key: "bags", header: "عدد الحقائب", render: (car) => car.bags },
   ];
 
+  const term = searchTerm.trim().toLowerCase();
+  const filteredCars = term
+    ? cars.filter((car) => carSearchText(car).includes(term))
+    : cars;
+
   return (
     <div className="grid gap-5">
       <div className="flex items-center justify-between gap-4">
@@ -128,6 +149,14 @@ export default function CarsPage() {
           إضافة سيارة
         </button>
       </div>
+
+      {cars.length > 0 && (
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="ابحث بالماركة، الموديل، التصنيف…"
+        />
+      )}
 
       {loading ? (
         <p className="text-sm text-ink-soft">جارٍ التحميل…</p>
@@ -150,7 +179,8 @@ export default function CarsPage() {
       ) : (
         <DataTable
           columns={columns}
-          rows={cars}
+          rows={filteredCars}
+          emptyMessage="لا توجد نتائج مطابقة للبحث."
           renderActions={(car) => (
             <>
               <button
