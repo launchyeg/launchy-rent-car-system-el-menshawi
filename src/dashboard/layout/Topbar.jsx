@@ -1,4 +1,5 @@
 import { FiLogOut, FiMenu } from "react-icons/fi";
+import PushNotificationButton from "./PushNotificationButton";
 
 export default function Topbar({ onMenuClick, userEmail, onSignOut }) {
   return (
@@ -16,14 +17,17 @@ export default function Topbar({ onMenuClick, userEmail, onSignOut }) {
         {userEmail}
       </span>
 
-      <button
-        type="button"
-        onClick={onSignOut}
-        className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink transition-colors hover:text-primary"
-      >
-        تسجيل الخروج
-        <FiLogOut aria-hidden="true" />
-      </button>
+      <div className="flex items-center gap-3">
+        <PushNotificationButton />
+        <button
+          type="button"
+          onClick={onSignOut}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink transition-colors hover:text-primary"
+        >
+          تسجيل الخروج
+          <FiLogOut aria-hidden="true" />
+        </button>
+      </div>
     </header>
   );
 }
