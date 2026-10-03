@@ -1,5 +1,11 @@
 import { NavLink } from "react-router-dom";
-import { FiCalendar, FiFileText, FiHome, FiShield, FiTool } from "react-icons/fi";
+import {
+  FiCalendar,
+  FiFileText,
+  FiHome,
+  FiShield,
+  FiTool,
+} from "react-icons/fi";
 import { FaCar } from "react-icons/fa6";
 import Brand from "../../components/layout/Brand";
 import { brand, footer } from "../../content/content";
@@ -24,7 +30,10 @@ export default function Sidebar({ onNavigate }) {
         <Brand {...brand} href="/" />
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 p-4" aria-label="التنقل الرئيسي">
+      <nav
+        className="flex flex-1 flex-col gap-1 p-4"
+        aria-label="التنقل الرئيسي"
+      >
         {navItems.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
@@ -58,7 +67,7 @@ export default function Sidebar({ onNavigate }) {
           </a>
         </span>
         <span className="rounded-full bg-surface-alt-2 px-2 py-0.5 font-semibold text-ink-faint">
-          v 1.0.0
+          v {__APP_VERSION__}
         </span>
       </div>
     </div>

@@ -108,7 +108,7 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-6 text-xs font-semibold text-ink-faint">
-          Launchy Rent Car System · v 1.0.0
+          Launchy Rent Car System · v {__APP_VERSION__}
         </p>
       </div>
     </div>
