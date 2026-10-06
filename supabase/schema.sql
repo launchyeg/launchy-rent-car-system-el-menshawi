@@ -1,4 +1,4 @@
--- Launchy Rent Car System v1 — database schema
+-- Launchy Rent Car System — database schema (final shape as of v2.1.0)
 --
 -- Base schema for a BRAND-NEW Supabase project only. Run this once in your
 -- SQL editor (Project → SQL Editor → New query → paste → Run). Safe to
@@ -11,6 +11,7 @@
 -- apply to a database that already has data.
 
 create extension if not exists pgcrypto;
+create extension if not exists btree_gist; -- bookings overlap constraint
 
 -- ---------------------------------------------------------------------
 -- cars — the fleet. Every other table hangs off this one via car_id.
@@ -26,6 +27,9 @@ create table if not exists cars (
   seats smallint not null default 5,
   bags smallint not null default 2,
   notes text,
+  color text,
+  owner_name text,
+  plate_number text, -- optional, deliberately not unique
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -87,19 +91,56 @@ create table if not exists oil_changes (
 create index if not exists oil_changes_car_id_idx on oil_changes (car_id);
 
 -- ---------------------------------------------------------------------
--- bookings — v1 is deliberately simple: no customer accounts, no payments
+-- bookings — customer data lives inside the booking row (no customers
+-- table, no accounts, no payments). Dates only, no times.
+-- A booking occupies [delivery day, receipt day). If a car is received back on
+-- the 15th, it CAN be delivered to another customer on the 15th (same-day
+-- turnover is allowed). Back-to-back bookings are valid. Rental days =
+-- receipt_date - delivery_date (10th -> 15th = 5 days). return_date >
+-- pickup_date is strict.
+-- daily_rate / customer_id_number are required by the form only (legacy
+-- rows don't have them). Display status (upcoming/active/completed/
+-- overdue) is derived in the app; only cancellation and return are stored.
 -- ---------------------------------------------------------------------
+create sequence if not exists bookings_contract_number_seq start 1001;
+
 create table if not exists bookings (
   id uuid primary key default gen_random_uuid(),
   car_id uuid not null references cars (id) on delete cascade,
+  contract_number integer not null unique default nextval('bookings_contract_number_seq'),
   customer_name text not null,
   customer_phone text not null,
+  customer_id_number text,
+  customer_address text,
+  customer_license_number text,
   pickup_date date not null,
   return_date date not null,
+  daily_rate numeric(12, 2),
+  deposit_amount numeric(12, 2) not null default 0,
+  odometer_out integer,
+  fuel_level_out text,
   notes text,
+  cancelled_at timestamptz,
+  returned_on date,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint bookings_dates_valid check (return_date > pickup_date),
+  constraint bookings_amounts_valid check (
+    (daily_rate is null or daily_rate >= 0)
+    and deposit_amount >= 0
+    and (odometer_out is null or odometer_out >= 0)
+  ),
+  constraint bookings_fuel_valid check (
+    fuel_level_out is null
+    or fuel_level_out in ('full', 'three_quarters', 'half', 'quarter', 'empty')
+  ),
+  constraint bookings_no_overlap exclude using gist (
+    car_id with =,
+    daterange(pickup_date, return_date, '[)') with &&
+  ) where (cancelled_at is null)
 );
+
+alter sequence bookings_contract_number_seq owned by bookings.contract_number;
 
 create index if not exists bookings_car_id_idx on bookings (car_id);
 create index if not exists bookings_date_range_idx on bookings (pickup_date, return_date);
@@ -199,3 +240,16 @@ create trigger set_updated_at before update on oil_changes
 drop trigger if exists set_updated_at on bookings;
 create trigger set_updated_at before update on bookings
   for each row execute function set_updated_at();
+
+-- contract_number can never change after insert
+create or replace function bookings_lock_contract_number()
+returns trigger as $$
+begin
+  new.contract_number := old.contract_number;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists lock_contract_number on bookings;
+create trigger lock_contract_number before update on bookings
+  for each row execute function bookings_lock_contract_number();

@@ -16,12 +16,13 @@ import {
   updateOilChange,
 } from "../../dashboard/features/maintenance/maintenanceApi";
 import { listCars } from "../../dashboard/features/cars/carsApi";
+import { carLabel } from "../../dashboard/lib/carLabel";
+import {
+  carSearchFields,
+  carStrictFields,
+  matchesQuery,
+} from "../../dashboard/lib/searchText";
 import { getOilStatus } from "../../dashboard/lib/alerts";
-
-function carLabel(car) {
-  if (!car) return "—";
-  return [car.make, car.model, car.year].filter(Boolean).join(" ");
-}
 
 const LEGEND_ITEMS = [
   { tone: "red", label: "متأخر", condition: "تجاوزت السيارة المسافة المحددة لتغيير الزيت" },
@@ -30,8 +31,8 @@ const LEGEND_ITEMS = [
   { tone: "gray", label: "لا يوجد سجل", condition: "لم يُسجَّل تغيير زيت لهذه السيارة بعد" },
 ];
 
-function oilSearchText(record) {
-  return carLabel(record.cars).toLowerCase();
+function oilSearchFields(record) {
+  return carSearchFields(record.cars);
 }
 
 export default function MaintenancePage() {
@@ -147,9 +148,12 @@ export default function MaintenancePage() {
     },
   ];
 
-  const term = searchTerm.trim().toLowerCase();
-  const filteredRecords = term
-    ? records.filter((record) => oilSearchText(record).includes(term))
+  const filteredRecords = searchTerm.trim()
+    ? records.filter((record) => matchesQuery(
+          oilSearchFields(record),
+          searchTerm,
+          carStrictFields(record.cars),
+        ))
     : records;
 
   return (
@@ -173,7 +177,7 @@ export default function MaintenancePage() {
         <SearchInput
           value={searchTerm}
           onChange={setSearchTerm}
-          placeholder="ابحث بالسيارة…"
+          placeholder="ابحث بالسيارة، المالك، رقم اللوحة…"
         />
       )}
 
@@ -249,7 +253,11 @@ export default function MaintenancePage() {
         onClose={() => setDeletingRecord(null)}
         onConfirm={handleDelete}
         loading={deleting}
-        message="سيتم حذف سجل تغيير الزيت هذا نهائيًا. لا يمكن التراجع عن هذا الإجراء."
+        message={
+          deletingRecord
+            ? `سيتم حذف سجل تغيير الزيت الخاص بـ "${carLabel(deletingRecord.cars)}" نهائيًا. لا يمكن التراجع عن هذا الإجراء.`
+            : ""
+        }
       />
     </div>
   );

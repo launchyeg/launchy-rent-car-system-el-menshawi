@@ -12,8 +12,8 @@ const toneClasses = {
 };
 
 // No whitespace-nowrap: most callers pass a short tag ("OK"), but several
-// booking/alert labels are full phrases (e.g. "يتبقى 1 يوم للاستلام من
-// العميل") — forcing those onto one un-wrappable line is exactly what
+// booking/alert labels are full phrases (e.g. "يتبقى 1 يوم على
+// الاستلام") — forcing those onto one un-wrappable line is exactly what
 // forces a table cell (and on some browsers, the whole page) wider than
 // the screen on mobile.
 export default function StatusBadge({ label, tone = "gray" }) {

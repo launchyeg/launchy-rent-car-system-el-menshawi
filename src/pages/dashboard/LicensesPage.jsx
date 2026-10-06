@@ -16,13 +16,14 @@ import {
   updateLicenseRenewal,
 } from "../../dashboard/features/licenses/licensesApi";
 import { listCars } from "../../dashboard/features/cars/carsApi";
+import { carLabel } from "../../dashboard/lib/carLabel";
+import {
+  carSearchFields,
+  carStrictFields,
+  matchesQuery,
+} from "../../dashboard/lib/searchText";
 import { getLicenseStatus } from "../../dashboard/lib/alerts";
 import { formatDate } from "../../dashboard/lib/format";
-
-function carLabel(car) {
-  if (!car) return "—";
-  return [car.make, car.model, car.year].filter(Boolean).join(" ");
-}
 
 const LEGEND_ITEMS = [
   { tone: "red", label: "منتهية", condition: "تاريخ الانتهاء مضى بالفعل" },
@@ -31,8 +32,8 @@ const LEGEND_ITEMS = [
   { tone: "green", label: "سارية", condition: "متبقٍ أكثر من 30 يوم" },
 ];
 
-function licenseSearchText(record) {
-  return carLabel(record.cars).toLowerCase();
+function licenseSearchFields(record) {
+  return carSearchFields(record.cars);
 }
 
 export default function LicensesPage() {
@@ -145,9 +146,12 @@ export default function LicensesPage() {
     },
   ];
 
-  const term = searchTerm.trim().toLowerCase();
-  const filteredRecords = term
-    ? records.filter((record) => licenseSearchText(record).includes(term))
+  const filteredRecords = searchTerm.trim()
+    ? records.filter((record) => matchesQuery(
+          licenseSearchFields(record),
+          searchTerm,
+          carStrictFields(record.cars),
+        ))
     : records;
 
   return (
@@ -171,7 +175,7 @@ export default function LicensesPage() {
         <SearchInput
           value={searchTerm}
           onChange={setSearchTerm}
-          placeholder="ابحث بالسيارة…"
+          placeholder="ابحث بالسيارة، المالك، رقم اللوحة…"
         />
       )}
 
@@ -247,7 +251,11 @@ export default function LicensesPage() {
         onClose={() => setDeletingRecord(null)}
         onConfirm={handleDelete}
         loading={deleting}
-        message="سيتم حذف سجل التجديد هذا نهائيًا. لا يمكن التراجع عن هذا الإجراء."
+        message={
+          deletingRecord
+            ? `سيتم حذف سجل تجديد الرخصة الخاص بـ "${carLabel(deletingRecord.cars)}" نهائيًا. لا يمكن التراجع عن هذا الإجراء.`
+            : ""
+        }
       />
     </div>
   );

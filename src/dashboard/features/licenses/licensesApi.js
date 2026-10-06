@@ -5,7 +5,7 @@ const TABLE = "license_renewals";
 export async function listLicenseRenewals() {
   const { data, error } = await supabase
     .from(TABLE)
-    .select("*, cars(id, make, model, year)")
+    .select("*, cars(id, make, model, year, owner_name, plate_number)")
     .order("expiry_date", { ascending: true });
   if (error) throw error;
   return data;
