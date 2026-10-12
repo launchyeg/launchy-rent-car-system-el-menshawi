@@ -17,11 +17,7 @@ import {
 } from "../../dashboard/features/maintenance/maintenanceApi";
 import { listCars } from "../../dashboard/features/cars/carsApi";
 import { getOilStatus } from "../../dashboard/lib/alerts";
-
-function carLabel(car) {
-  if (!car) return "—";
-  return [car.make, car.model, car.year].filter(Boolean).join(" ");
-}
+import { carLabel } from "../../dashboard/lib/carLabel";
 
 const LEGEND_ITEMS = [
   { tone: "red", label: "متأخر", condition: "تجاوزت السيارة المسافة المحددة لتغيير الزيت" },

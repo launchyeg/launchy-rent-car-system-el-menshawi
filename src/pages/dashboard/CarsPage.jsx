@@ -19,12 +19,15 @@ import {
   fuelTypeLabel,
   transmissionLabel,
 } from "../../dashboard/features/cars/carConstants";
+import { carLabel } from "../../dashboard/lib/carLabel";
 
 function carSearchText(car) {
   return [
     car.make,
     car.model,
     car.year,
+    car.owner_name,
+    car.color,
     categoryLabel(car.category),
     transmissionLabel(car.transmission),
     fuelTypeLabel(car.fuel_type),
@@ -110,12 +113,10 @@ export default function CarsPage() {
       key: "name",
       header: "السيارة",
       render: (car) => (
-        <p className="font-semibold text-ink">
-          {[car.make, car.model].filter(Boolean).join(" ")}
-          {car.year ? ` ${car.year}` : ""}
-        </p>
+        <p className="font-semibold text-ink">{carLabel(car)}</p>
       ),
     },
+    { key: "color", header: "اللون", render: (car) => car.color || "—" },
     {
       key: "category",
       header: "التصنيف",
@@ -225,7 +226,7 @@ export default function CarsPage() {
         loading={deleting}
         message={
           deletingCar
-            ? `سيتم حذف "${[deletingCar.make, deletingCar.model].filter(Boolean).join(" ")}" وكل سجلات التأمين والرخصة والصيانة والحجوزات المرتبطة بها. لا يمكن التراجع عن هذا الإجراء.`
+            ? `سيتم حذف "${carLabel(deletingCar)}" وكل سجلات التأمين والرخصة والصيانة والحجوزات المرتبطة بها. لا يمكن التراجع عن هذا الإجراء.`
             : ""
         }
       />

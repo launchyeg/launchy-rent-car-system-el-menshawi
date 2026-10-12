@@ -18,11 +18,7 @@ import {
 import { listCars } from "../../dashboard/features/cars/carsApi";
 import { getLicenseStatus } from "../../dashboard/lib/alerts";
 import { formatDate } from "../../dashboard/lib/format";
-
-function carLabel(car) {
-  if (!car) return "—";
-  return [car.make, car.model, car.year].filter(Boolean).join(" ");
-}
+import { carLabel } from "../../dashboard/lib/carLabel";
 
 const LEGEND_ITEMS = [
   { tone: "red", label: "منتهية", condition: "تاريخ الانتهاء مضى بالفعل" },

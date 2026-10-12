@@ -11,6 +11,7 @@ import {
   getOilStatus,
 } from "../lib/alerts";
 import { useToast } from "../ui/Toast";
+import { carLabel } from "../lib/carLabel";
 
 const AlertsContext = createContext(undefined);
 
@@ -19,11 +20,6 @@ const AlertsContext = createContext(undefined);
 // supabase/functions/push-alerts on its own 15-minute schedule — this is
 // just so the page itself stays current without a manual reload.
 const AUTO_REFRESH_INTERVAL_MS = 60 * 1000;
-
-function carLabel(car) {
-  if (!car) return "—";
-  return [car.make, car.model, car.year].filter(Boolean).join(" ");
-}
 
 // Keeps, per car, only the one record whose keyFn value is highest — the
 // "current" insurance/license/oil-change record for that car.

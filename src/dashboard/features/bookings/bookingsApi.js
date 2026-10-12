@@ -5,7 +5,7 @@ const TABLE = "bookings";
 export async function listBookings() {
   const { data, error } = await supabase
     .from(TABLE)
-    .select("*, cars(id, make, model, year)")
+    .select("*, cars(id, make, model, year, owner_name)")
     .order("pickup_date", { ascending: false });
   if (error) throw error;
   return data;

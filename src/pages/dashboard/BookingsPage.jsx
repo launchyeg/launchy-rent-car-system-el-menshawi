@@ -18,11 +18,7 @@ import {
 import { listCars } from "../../dashboard/features/cars/carsApi";
 import { getBookingAlert, getBookingFlags } from "../../dashboard/lib/alerts";
 import { formatDate } from "../../dashboard/lib/format";
-
-function carLabel(car) {
-  if (!car) return "—";
-  return [car.make, car.model, car.year].filter(Boolean).join(" ");
-}
+import { carLabel } from "../../dashboard/lib/carLabel";
 
 // Bookings aren't an expiry concept, so this maps to a single display
 // badge, most-urgent first. Within the alert window (see getBookingAlert

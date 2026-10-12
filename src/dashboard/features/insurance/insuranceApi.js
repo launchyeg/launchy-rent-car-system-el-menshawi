@@ -8,7 +8,7 @@ const TABLE = "insurance_records";
 export async function listInsuranceRecords() {
   const { data, error } = await supabase
     .from(TABLE)
-    .select("*, cars(id, make, model, year)")
+    .select("*, cars(id, make, model, year, owner_name)")
     .order("expiry_date", { ascending: true });
   if (error) throw error;
   return data;

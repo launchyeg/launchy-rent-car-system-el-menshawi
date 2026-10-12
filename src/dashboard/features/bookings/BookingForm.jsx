@@ -1,5 +1,6 @@
 import { useState } from "react";
 import FormField from "../../ui/FormField";
+import { carLabel } from "../../lib/carLabel";
 
 const emptyValues = {
   car_id: "",
@@ -31,10 +32,6 @@ function toPayload(values) {
     return_date: values.return_date,
     notes: values.notes.trim() || null,
   };
-}
-
-function carLabel(car) {
-  return [car.make, car.model, car.year].filter(Boolean).join(" ");
 }
 
 // `cars` is the fleet list, passed down from BookingsPage. Rendered fresh

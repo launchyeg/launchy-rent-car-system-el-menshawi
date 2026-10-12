@@ -15,6 +15,8 @@ const emptyValues = {
   fuel_type: "petrol",
   seats: 5,
   bags: 2,
+  color: "",
+  owner_name: "",
   notes: "",
 };
 
@@ -29,6 +31,8 @@ function toFormValues(car) {
     fuel_type: car.fuel_type ?? "petrol",
     seats: car.seats ?? 5,
     bags: car.bags ?? 2,
+    color: car.color ?? "",
+    owner_name: car.owner_name ?? "",
     notes: car.notes ?? "",
   };
 }
@@ -47,6 +51,8 @@ function toPayload(values) {
     fuel_type: values.fuel_type,
     seats: toIntOrNull(values.seats) ?? 5,
     bags: toIntOrNull(values.bags) ?? 2,
+    color: values.color.trim() || null,
+    owner_name: values.owner_name.trim() || null,
     notes: values.notes.trim() || null,
   };
 }
@@ -95,6 +101,27 @@ export default function CarForm({ car, onSubmit, onCancel, submitting }) {
             placeholder="مثال: 2026"
             value={values.year}
             onChange={handleChange("year")}
+            className="w-full text-sm outline-none placeholder:text-ink-faint"
+          />
+        </FormField>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <FormField label="اسم المالك">
+          <input
+            type="text"
+            value={values.owner_name}
+            onChange={handleChange("owner_name")}
+            placeholder="مثال: محمد أحمد"
+            className="w-full text-sm outline-none placeholder:text-ink-faint"
+          />
+        </FormField>
+        <FormField label="اللون">
+          <input
+            type="text"
+            value={values.color}
+            onChange={handleChange("color")}
+            placeholder="مثال: أبيض"
             className="w-full text-sm outline-none placeholder:text-ink-faint"
           />
         </FormField>
