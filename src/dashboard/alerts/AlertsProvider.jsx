@@ -5,12 +5,11 @@ import { listLicenseRenewals } from "../features/licenses/licensesApi";
 import { listOilChanges } from "../features/maintenance/maintenanceApi";
 import { listBookings } from "../features/bookings/bookingsApi";
 import {
-  buildBookingAlerts,
+  getBookingAlert,
   getInsuranceStatus,
   getLicenseStatus,
   getOilStatus,
 } from "../lib/alerts";
-import { carLabel } from "../lib/carLabel";
 import { useToast } from "../ui/Toast";
 
 const AlertsContext = createContext(undefined);
@@ -20,6 +19,11 @@ const AlertsContext = createContext(undefined);
 // supabase/functions/push-alerts on its own 15-minute schedule — this is
 // just so the page itself stays current without a manual reload.
 const AUTO_REFRESH_INTERVAL_MS = 60 * 1000;
+
+function carLabel(car) {
+  if (!car) return "—";
+  return [car.make, car.model, car.year].filter(Boolean).join(" ");
+}
 
 // Keeps, per car, only the one record whose keyFn value is highest — the
 // "current" insurance/license/oil-change record for that car.
@@ -113,12 +117,22 @@ export function AlertsProvider({ children }) {
       }
       nextAlerts.sort((a, b) => a.rank - b.rank);
 
-      // Cancelled bookings are dropped everywhere downstream.
-      const liveBookings = bookingsData.filter((booking) => !booking.cancelled_at);
-      const nextBookingAlerts = buildBookingAlerts(liveBookings);
+      const nextBookingAlerts = [];
+      for (const booking of bookingsData) {
+        const alert = getBookingAlert(booking.pickup_date, booking.return_date);
+        if (!alert) continue;
+        nextBookingAlerts.push({
+          key: `booking:${booking.id}:${alert.type}`,
+          tone: alert.tone,
+          label: alert.label,
+          car: carLabel(booking.cars),
+          customer_name: booking.customer_name,
+          customer_phone: booking.customer_phone,
+        });
+      }
 
       setCars(carsData);
-      setBookings(liveBookings);
+      setBookings(bookingsData);
       setAlerts(nextAlerts);
       setBookingAlerts(nextBookingAlerts);
     } catch (error) {

@@ -15,24 +15,8 @@ const emptyValues = {
   fuel_type: "petrol",
   seats: 5,
   bags: 2,
-  color: "",
-  owner_name: "",
-  plate_number: "",
   notes: "",
 };
-
-// Egyptian plates are written with each letter separated ("أ ب ج 1234").
-// Strips all spaces, then puts one between every letter and between a
-// letter and a digit; digits stay grouped together. Never leaves a
-// trailing space, so Backspace behaves normally.
-function formatPlate(raw) {
-  const chars = Array.from(raw.replace(/\s+/g, ""));
-  const isDigit = (char) => /[0-9٠-٩]/.test(char);
-  return chars.reduce((out, char, index) => {
-    const joinsDigits = index > 0 && isDigit(chars[index - 1]) && isDigit(char);
-    return out + (index > 0 && !joinsDigits ? " " : "") + char;
-  }, "");
-}
 
 function toFormValues(car) {
   if (!car) return emptyValues;
@@ -45,9 +29,6 @@ function toFormValues(car) {
     fuel_type: car.fuel_type ?? "petrol",
     seats: car.seats ?? 5,
     bags: car.bags ?? 2,
-    color: car.color ?? "",
-    owner_name: car.owner_name ?? "",
-    plate_number: formatPlate(car.plate_number ?? ""),
     notes: car.notes ?? "",
   };
 }
@@ -66,9 +47,6 @@ function toPayload(values) {
     fuel_type: values.fuel_type,
     seats: toIntOrNull(values.seats) ?? 5,
     bags: toIntOrNull(values.bags) ?? 2,
-    color: values.color.trim() || null,
-    owner_name: values.owner_name.trim() || null,
-    plate_number: values.plate_number.trim(),
     notes: values.notes.trim() || null,
   };
 }
@@ -117,42 +95,6 @@ export default function CarForm({ car, onSubmit, onCancel, submitting }) {
             placeholder="مثال: 2026"
             value={values.year}
             onChange={handleChange("year")}
-            className="w-full text-sm outline-none placeholder:text-ink-faint"
-          />
-        </FormField>
-      </div>
-
-      <div className="grid gap-5 sm:grid-cols-3">
-        <FormField label="اسم المالك">
-          <input
-            type="text"
-            value={values.owner_name}
-            onChange={handleChange("owner_name")}
-            placeholder="مثال: محمد أحمد"
-            className="w-full text-sm outline-none placeholder:text-ink-faint"
-          />
-        </FormField>
-        <FormField label="اللون">
-          <input
-            type="text"
-            value={values.color}
-            onChange={handleChange("color")}
-            placeholder="مثال: أبيض"
-            className="w-full text-sm outline-none placeholder:text-ink-faint"
-          />
-        </FormField>
-        <FormField label="رقم اللوحة" required>
-          <input
-            type="text"
-            required
-            value={values.plate_number}
-            onChange={(event) =>
-              setValues((current) => ({
-                ...current,
-                plate_number: formatPlate(event.target.value),
-              }))
-            }
-            placeholder="مثال: أ ب ج 1234"
             className="w-full text-sm outline-none placeholder:text-ink-faint"
           />
         </FormField>

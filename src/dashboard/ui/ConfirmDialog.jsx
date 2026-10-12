@@ -13,7 +13,6 @@ export default function ConfirmDialog({
   cancelLabel = "إلغاء",
   danger = true,
   loading = false,
-  loadingLabel = "جارٍ الحذف…",
 }) {
   return (
     <Modal open={open} onClose={onClose} title={title} maxWidthClass="max-w-sm">
@@ -35,7 +34,7 @@ export default function ConfirmDialog({
             danger ? "bg-red-600 hover:bg-red-700" : "btn-primary"
           }`}
         >
-          {loading ? loadingLabel : confirmLabel}
+          {loading ? "جارٍ الحذف…" : confirmLabel}
         </button>
       </div>
     </Modal>

@@ -16,14 +16,13 @@ import {
   updateInsuranceRecord,
 } from "../../dashboard/features/insurance/insuranceApi";
 import { listCars } from "../../dashboard/features/cars/carsApi";
-import { carLabel } from "../../dashboard/lib/carLabel";
-import {
-  carSearchFields,
-  carStrictFields,
-  matchesQuery,
-} from "../../dashboard/lib/searchText";
 import { getInsuranceStatus } from "../../dashboard/lib/alerts";
 import { formatDate } from "../../dashboard/lib/format";
+
+function carLabel(car) {
+  if (!car) return "—";
+  return [car.make, car.model, car.year].filter(Boolean).join(" ");
+}
 
 const LEGEND_ITEMS = [
   { tone: "red", label: "منتهي", condition: "تاريخ الانتهاء مضى بالفعل" },
@@ -32,8 +31,11 @@ const LEGEND_ITEMS = [
   { tone: "green", label: "ساري", condition: "متبقٍ أكثر من 30 يوم" },
 ];
 
-function insuranceSearchFields(record) {
-  return [...carSearchFields(record.cars), record.provider, record.policy_number];
+function insuranceSearchText(record) {
+  return [carLabel(record.cars), record.provider, record.policy_number]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 }
 
 export default function InsurancePage() {
@@ -146,12 +148,9 @@ export default function InsurancePage() {
     },
   ];
 
-  const filteredRecords = searchTerm.trim()
-    ? records.filter((record) => matchesQuery(
-          insuranceSearchFields(record),
-          searchTerm,
-          carStrictFields(record.cars),
-        ))
+  const term = searchTerm.trim().toLowerCase();
+  const filteredRecords = term
+    ? records.filter((record) => insuranceSearchText(record).includes(term))
     : records;
 
   return (
@@ -175,7 +174,7 @@ export default function InsurancePage() {
         <SearchInput
           value={searchTerm}
           onChange={setSearchTerm}
-          placeholder="ابحث بالسيارة، المالك، رقم اللوحة، شركة التأمين، رقم البوليصة…"
+          placeholder="ابحث بالسيارة، شركة التأمين، رقم البوليصة…"
         />
       )}
 
@@ -251,11 +250,7 @@ export default function InsurancePage() {
         onClose={() => setDeletingRecord(null)}
         onConfirm={handleDelete}
         loading={deleting}
-        message={
-          deletingRecord
-            ? `سيتم حذف سجل التأمين الخاص بـ "${carLabel(deletingRecord.cars)}" نهائيًا. لا يمكن التراجع عن هذا الإجراء.`
-            : ""
-        }
+        message="سيتم حذف سجل التأمين هذا نهائيًا. لا يمكن التراجع عن هذا الإجراء."
       />
     </div>
   );

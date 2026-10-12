@@ -5,7 +5,7 @@ const TABLE = "oil_changes";
 export async function listOilChanges() {
   const { data, error } = await supabase
     .from(TABLE)
-    .select("*, cars(id, make, model, year, owner_name, plate_number)")
+    .select("*, cars(id, make, model, year)")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data;

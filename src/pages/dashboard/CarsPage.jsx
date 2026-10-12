@@ -19,20 +19,19 @@ import {
   fuelTypeLabel,
   transmissionLabel,
 } from "../../dashboard/features/cars/carConstants";
-import { carLabel } from "../../dashboard/lib/carLabel";
-import {
-  carSearchFields as sharedCarSearchFields,
-  carStrictFields,
-  matchesQuery,
-} from "../../dashboard/lib/searchText";
 
-function carSearchFields(car) {
+function carSearchText(car) {
   return [
-    ...sharedCarSearchFields(car),
+    car.make,
+    car.model,
+    car.year,
     categoryLabel(car.category),
     transmissionLabel(car.transmission),
     fuelTypeLabel(car.fuel_type),
-  ];
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 }
 
 export default function CarsPage() {
@@ -111,13 +110,11 @@ export default function CarsPage() {
       key: "name",
       header: "السيارة",
       render: (car) => (
-        <p className="font-semibold text-ink">{carLabel(car)}</p>
+        <p className="font-semibold text-ink">
+          {[car.make, car.model].filter(Boolean).join(" ")}
+          {car.year ? ` ${car.year}` : ""}
+        </p>
       ),
-    },
-    {
-      key: "plate_number",
-      header: "رقم اللوحة",
-      render: (car) => car.plate_number || "—",
     },
     {
       key: "category",
@@ -138,8 +135,9 @@ export default function CarsPage() {
     { key: "bags", header: "عدد الحقائب", render: (car) => car.bags },
   ];
 
-  const filteredCars = searchTerm.trim()
-    ? cars.filter((car) => matchesQuery(carSearchFields(car), searchTerm, carStrictFields(car)))
+  const term = searchTerm.trim().toLowerCase();
+  const filteredCars = term
+    ? cars.filter((car) => carSearchText(car).includes(term))
     : cars;
 
   return (
@@ -156,7 +154,7 @@ export default function CarsPage() {
         <SearchInput
           value={searchTerm}
           onChange={setSearchTerm}
-          placeholder="ابحث بالماركة، الموديل، رقم اللوحة، المالك…"
+          placeholder="ابحث بالماركة، الموديل، التصنيف…"
         />
       )}
 
@@ -227,7 +225,7 @@ export default function CarsPage() {
         loading={deleting}
         message={
           deletingCar
-            ? `سيتم حذف "${carLabel(deletingCar)}" وكل سجلات التأمين والرخصة والصيانة والحجوزات المرتبطة بها. لا يمكن التراجع عن هذا الإجراء.`
+            ? `سيتم حذف "${[deletingCar.make, deletingCar.model].filter(Boolean).join(" ")}" وكل سجلات التأمين والرخصة والصيانة والحجوزات المرتبطة بها. لا يمكن التراجع عن هذا الإجراء.`
             : ""
         }
       />

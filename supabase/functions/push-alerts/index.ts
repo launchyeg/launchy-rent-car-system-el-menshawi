@@ -105,42 +105,24 @@ function getBookingFlags(pickupDate: string, returnDate: string) {
   };
 }
 
-// Ported from getBookingNotice in src/dashboard/lib/alerts.js. Cancelled
-// bookings are excluded by the query below; ones already marked received
-// (returned_on) never alert. Overdue = today is after the receipt date and
-// the car was never marked received. The alert key uses the type only, so
-// an overdue booking pushes once, not every day.
-function getBookingAlert(booking: {
-  pickup_date: string;
-  return_date: string;
-  returned_on?: string | null;
-}): { type: "pickup" | "return" | "overdue"; label: string } | null {
-  if (booking.returned_on) return null;
-  const pickupDate = booking.pickup_date;
-  const returnDate = booking.return_date;
-
-  const overdueDays = -daysUntil(returnDate);
-  if (overdueDays > 0) {
-    return {
-      type: "overdue",
-      label: `متأخر ${overdueDays} ${overdueDays === 1 ? "يوم" : "أيام"} عن الاستلام`,
-    };
-  }
-
+function getBookingAlert(
+  pickupDate: string,
+  returnDate: string,
+): { type: "pickup" | "return"; label: string } | null {
   const { isPickupToday, isReturnToday, isCurrentlyBooked } = getBookingFlags(
     pickupDate,
     returnDate,
   );
 
-  if (isReturnToday) return { type: "return", label: "استلام سيارة اليوم" };
-  if (isPickupToday) return { type: "pickup", label: "تسليم سيارة اليوم" };
+  if (isReturnToday) return { type: "return", label: "استلام اليوم" };
+  if (isPickupToday) return { type: "pickup", label: "تسليم اليوم" };
 
   if (isCurrentlyBooked) {
     const daysToReturn = daysUntil(returnDate);
     if (daysToReturn > 0 && daysToReturn <= BOOKING_ALERT_WINDOW_DAYS) {
       return {
         type: "return",
-        label: `يتبقى ${daysToReturn} ${daysToReturn === 1 ? "يوم" : "أيام"} على الاستلام`,
+        label: `يتبقى ${daysToReturn} ${daysToReturn === 1 ? "يوم" : "أيام"} للاستلام من العميل`,
       };
     }
     return null;
@@ -150,22 +132,16 @@ function getBookingAlert(booking: {
   if (daysToPickup > 0 && daysToPickup <= BOOKING_ALERT_WINDOW_DAYS) {
     return {
       type: "pickup",
-      label: `يتبقى ${daysToPickup} ${daysToPickup === 1 ? "يوم" : "أيام"} على التسليم`,
+      label: `يتبقى ${daysToPickup} ${daysToPickup === 1 ? "يوم" : "أيام"} للتسليم`,
     };
   }
 
   return null;
 }
 
-// Same format as src/dashboard/lib/carLabel.js (ported — this runs in a
-// separate Deno runtime): "make model year - owner name", no dash when
-// there's no owner.
-function carLabel(
-  car: { make?: string; model?: string; year?: number; owner_name?: string } | undefined,
-): string {
+function carLabel(car: { make?: string; model?: string; year?: number } | undefined): string {
   if (!car) return "—";
-  const name = [car.make, car.model, car.year].filter(Boolean).join(" ");
-  return car.owner_name ? `${name} - ${car.owner_name}` : name;
+  return [car.make, car.model, car.year].filter(Boolean).join(" ");
 }
 
 function latestPerCarBy<T extends { car_id: string }>(
@@ -198,14 +174,13 @@ async function computeActiveAlerts(
     { data: oilRecords },
     { data: bookings },
   ] = await Promise.all([
-    supabase.from("cars").select("id, make, model, year, owner_name"),
+    supabase.from("cars").select("id, make, model, year"),
     supabase.from("insurance_records").select("car_id, expiry_date"),
     supabase.from("license_renewals").select("car_id, expiry_date"),
     supabase.from("oil_changes").select("car_id, odometer_km, next_change_odometer_km"),
     supabase
       .from("bookings")
-      .select("id, car_id, pickup_date, return_date, customer_name, returned_on")
-      .is("cancelled_at", null),
+      .select("id, car_id, pickup_date, return_date, customer_name"),
   ]);
 
   const carsById = new Map((cars ?? []).map((car) => [car.id, car]));
@@ -243,7 +218,7 @@ async function computeActiveAlerts(
     }
   }
   for (const booking of bookings ?? []) {
-    const alert = getBookingAlert(booking);
+    const alert = getBookingAlert(booking.pickup_date, booking.return_date);
     if (!alert) continue;
     active.set(
       `booking:${booking.id}:${alert.type}`,

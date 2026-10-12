@@ -4,7 +4,7 @@ import StatCard from "../../dashboard/ui/StatCard";
 import DataTable from "../../dashboard/ui/DataTable";
 import StatusBadge from "../../dashboard/ui/StatusBadge";
 import { useAlerts } from "../../dashboard/alerts/AlertsProvider";
-import { countCurrentBookings } from "../../dashboard/lib/alerts";
+import { getBookingFlags } from "../../dashboard/lib/alerts";
 
 const toneBorderClasses = {
   red: "border-red-400",
@@ -25,7 +25,9 @@ const alertIcons = {
 export default function DashboardHome() {
   const { cars, bookings, alerts, bookingAlerts, loading } = useAlerts();
 
-  const currentBookingsCount = countCurrentBookings(bookings);
+  const currentBookingsCount = bookings.filter(
+    (b) => getBookingFlags(b.pickup_date, b.return_date).isCurrentlyBooked,
+  ).length;
 
   const insuranceAlertCount = alerts.filter((a) => a.type === "insurance").length;
   const licenseAlertCount = alerts.filter((a) => a.type === "license").length;

@@ -10,7 +10,6 @@ import InsurancePage from "../pages/dashboard/InsurancePage";
 import LicensesPage from "../pages/dashboard/LicensesPage";
 import MaintenancePage from "../pages/dashboard/MaintenancePage";
 import BookingsPage from "../pages/dashboard/BookingsPage";
-import ContractPage from "../pages/dashboard/ContractPage";
 
 // Everything that needs Supabase (auth + all dashboard data) lives behind
 // this one lazy-loaded boundary (see App.jsx), so a visitor to the public
@@ -39,17 +38,6 @@ export default function AdminArea() {
             <Route path="maintenance" element={<MaintenancePage />} />
             <Route path="bookings" element={<BookingsPage />} />
           </Route>
-
-          {/* Printable contract: authenticated, but outside DashboardLayout so
-              the page has no sidebar/topbar to hide when printing. */}
-          <Route
-            path="/dashboard/bookings/:id/contract"
-            element={
-              <RequireAuth>
-                <ContractPage />
-              </RequireAuth>
-            }
-          />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
