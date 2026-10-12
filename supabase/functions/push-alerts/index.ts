@@ -1,4 +1,4 @@
-// Runs every 15 minutes (see supabase/migrations/0002_push_notifications_schedule.sql).
+// Runs every 15 minutes via a Supabase Cron job (Dashboard → Database → Cron Jobs).
 // Checks the database for anything that has newly crossed into an alert
 // state since the last check (not the moment a record is edited — see
 // notification_log below), and sends a real Web Push notification for
@@ -19,10 +19,20 @@ import webpush from "npm:web-push@3";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-function daysUntil(dateString: string, today: Date = new Date()): number {
-  const target = new Date(`${dateString}T00:00:00`);
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  return Math.round((target.getTime() - startOfToday.getTime()) / MS_PER_DAY);
+// The Edge runtime runs in UTC, but "today" has to be the business's day
+// in Egypt — otherwise, from midnight until 2–3 AM Cairo time, every
+// date rule is a day behind. Returns "YYYY-MM-DD" (en-CA formats that way);
+// Intl handles Egypt's summer/winter time switch.
+function cairoTodayISO(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo" }).format(new Date());
+}
+
+// Whole calendar days from today (Cairo) to a "YYYY-MM-DD" date; both
+// sides are parsed as UTC midnight so the difference is exact.
+function daysUntil(dateString: string): number {
+  const target = Date.parse(`${dateString}T00:00:00Z`);
+  const today = Date.parse(`${cairoTodayISO()}T00:00:00Z`);
+  return Math.round((target - today) / MS_PER_DAY);
 }
 
 const INSURANCE_DUE_DAYS = 7;
@@ -90,38 +100,32 @@ function getOilStatus(
 }
 
 function getBookingFlags(pickupDate: string, returnDate: string) {
-  const today = new Date();
-  const startOfToday = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-  ).getTime();
-  const pickup = new Date(`${pickupDate}T00:00:00`).getTime();
-  const dropoff = new Date(`${returnDate}T00:00:00`).getTime();
+  const today = cairoTodayISO();
   return {
-    isPickupToday: pickup === startOfToday,
-    isReturnToday: dropoff === startOfToday,
-    isCurrentlyBooked: pickup <= startOfToday && startOfToday <= dropoff,
+    isPickupToday: pickupDate === today,
+    isReturnToday: returnDate === today,
+    isCurrentlyBooked: pickupDate <= today && today <= returnDate,
   };
 }
 
 function getBookingAlert(
   pickupDate: string,
   returnDate: string,
-): { type: "pickup" | "return"; label: string } | null {
+): { type: "pickup" | "return"; days: number; label: string } | null {
   const { isPickupToday, isReturnToday, isCurrentlyBooked } = getBookingFlags(
     pickupDate,
     returnDate,
   );
 
-  if (isReturnToday) return { type: "return", label: "استلام اليوم" };
-  if (isPickupToday) return { type: "pickup", label: "تسليم اليوم" };
+  if (isReturnToday) return { type: "return", days: 0, label: "استلام اليوم" };
+  if (isPickupToday) return { type: "pickup", days: 0, label: "تسليم اليوم" };
 
   if (isCurrentlyBooked) {
     const daysToReturn = daysUntil(returnDate);
     if (daysToReturn > 0 && daysToReturn <= BOOKING_ALERT_WINDOW_DAYS) {
       return {
         type: "return",
+        days: daysToReturn,
         label: `يتبقى ${daysToReturn} ${daysToReturn === 1 ? "يوم" : "أيام"} للاستلام من العميل`,
       };
     }
@@ -132,6 +136,7 @@ function getBookingAlert(
   if (daysToPickup > 0 && daysToPickup <= BOOKING_ALERT_WINDOW_DAYS) {
     return {
       type: "pickup",
+      days: daysToPickup,
       label: `يتبقى ${daysToPickup} ${daysToPickup === 1 ? "يوم" : "أيام"} للتسليم`,
     };
   }
@@ -139,9 +144,13 @@ function getBookingAlert(
   return null;
 }
 
-function carLabel(car: { make?: string; model?: string; year?: number } | undefined): string {
+// Same format as src/dashboard/lib/carLabel.js: "make model year - owner".
+function carLabel(
+  car: { make?: string; model?: string; year?: number; owner_name?: string | null } | undefined,
+): string {
   if (!car) return "—";
-  return [car.make, car.model, car.year].filter(Boolean).join(" ");
+  const name = [car.make, car.model, car.year].filter(Boolean).join(" ");
+  return car.owner_name ? `${name} - ${car.owner_name}` : name;
 }
 
 function latestPerCarBy<T extends { car_id: string }>(
@@ -159,22 +168,17 @@ function latestPerCarBy<T extends { car_id: string }>(
 }
 
 // ---------------------------------------------------------------------
-// Compute every currently-active alert, keyed the same way the in-app
-// bell keys them (src/dashboard/alerts/AlertsProvider.jsx) — stable per
-// car/booking-event, independent of the day-count in its text.
+// Compute every currently-active alert. Each key includes the alert's
+// stage (insurance approaching → due → expired, booking soon → today),
+// so moving to a more urgent stage pushes again, while the day-count in
+// the text changing within a stage ("3 days" → "2 days") does not.
 // ---------------------------------------------------------------------
 
 async function computeActiveAlerts(
   supabase: ReturnType<typeof createClient>,
 ): Promise<Map<string, string>> {
-  const [
-    { data: cars },
-    { data: insuranceRecords },
-    { data: licenseRecords },
-    { data: oilRecords },
-    { data: bookings },
-  ] = await Promise.all([
-    supabase.from("cars").select("id, make, model, year"),
+  const results = await Promise.all([
+    supabase.from("cars").select("id, make, model, year, owner_name"),
     supabase.from("insurance_records").select("car_id, expiry_date"),
     supabase.from("license_renewals").select("car_id, expiry_date"),
     supabase.from("oil_changes").select("car_id, odometer_km, next_change_odometer_km"),
@@ -182,6 +186,18 @@ async function computeActiveAlerts(
       .from("bookings")
       .select("id, car_id, pickup_date, return_date, customer_name"),
   ]);
+
+  // A failed read must stop the run. Treating it as "no alerts" would
+  // clear notification_log and later re-push everything at once.
+  const failed = results.find((result) => result.error);
+  if (failed) throw failed.error;
+  const [
+    { data: cars },
+    { data: insuranceRecords },
+    { data: licenseRecords },
+    { data: oilRecords },
+    { data: bookings },
+  ] = results;
 
   const carsById = new Map((cars ?? []).map((car) => [car.id, car]));
   const latestInsurance = latestPerCarBy(insuranceRecords ?? [], (r) => r.expiry_date);
@@ -194,7 +210,7 @@ async function computeActiveAlerts(
     const status = getInsuranceStatus(record.expiry_date);
     if (status.level !== "ok") {
       active.set(
-        `insurance:${carId}`,
+        `insurance:${carId}:${status.level}`,
         `🛡️ التأمين — ${carLabel(carsById.get(carId))} — ${status.label}`,
       );
     }
@@ -203,7 +219,7 @@ async function computeActiveAlerts(
     const status = getLicenseStatus(record.expiry_date);
     if (status.level !== "ok") {
       active.set(
-        `license:${carId}`,
+        `license:${carId}:${status.level}`,
         `📄 رخصة السيارة — ${carLabel(carsById.get(carId))} — ${status.label}`,
       );
     }
@@ -212,7 +228,7 @@ async function computeActiveAlerts(
     const status = getOilStatus(record.odometer_km, record.next_change_odometer_km);
     if (status.level !== "ok" && status.level !== "none") {
       active.set(
-        `oil:${carId}`,
+        `oil:${carId}:${status.level}`,
         `🛠️ تغيير الزيت — ${carLabel(carsById.get(carId))} — ${status.label}`,
       );
     }
@@ -221,7 +237,7 @@ async function computeActiveAlerts(
     const alert = getBookingAlert(booking.pickup_date, booking.return_date);
     if (!alert) continue;
     active.set(
-      `booking:${booking.id}:${alert.type}`,
+      `booking:${booking.id}:${alert.type}:${alert.days === 0 ? "today" : "soon"}`,
       `📅 ${alert.label} — ${carLabel(carsById.get(booking.car_id))} — ${booking.customer_name}`,
     );
   }
@@ -248,9 +264,10 @@ Deno.serve(async () => {
 
     const activeAlerts = await computeActiveAlerts(supabase);
 
-    const { data: loggedRows } = await supabase
+    const { data: loggedRows, error: logError } = await supabase
       .from("notification_log")
       .select("alert_key");
+    if (logError) throw logError;
     const loggedKeys = new Set((loggedRows ?? []).map((row) => row.alert_key));
 
     // Newly active since the last check — these get pushed.
@@ -282,8 +299,15 @@ Deno.serve(async () => {
       );
     }
 
+    // Web Push payloads are capped at ~4 KB, so a big batch (e.g. the first
+    // run) lists the first few and summarises the rest.
+    const MAX_LINES = 5;
     const title = newKeys.length === 1 ? "تنبيه جديد" : `${newKeys.length} تنبيهات جديدة`;
-    const body = newKeys.map((key) => activeAlerts.get(key)).join("\n");
+    const lines = newKeys.slice(0, MAX_LINES).map((key) => activeAlerts.get(key));
+    if (newKeys.length > MAX_LINES) {
+      lines.push(`+ ${newKeys.length - MAX_LINES} تنبيهات أخرى — افتح لوحة التحكم`);
+    }
+    const body = lines.join("\n");
     const payload = JSON.stringify({ title, body });
 
     const sendResults = await Promise.allSettled(
@@ -314,11 +338,20 @@ Deno.serve(async () => {
       await supabase.from("push_subscriptions").delete().in("endpoint", deadEndpoints);
     }
 
-    await supabase
-      .from("notification_log")
-      .insert(newKeys.map((key) => ({ alert_key: key })));
-
     const delivered = sendResults.filter((result) => result.status === "fulfilled").length;
+
+    // Only mark these as notified if at least one device got them;
+    // otherwise the next run tries again instead of silencing them.
+    if (delivered > 0) {
+      await supabase
+        .from("notification_log")
+        .insert(newKeys.map((key) => ({ alert_key: key })));
+    } else {
+      console.error(
+        "push-alerts: no device accepted the notification",
+        sendResults.map((result) => (result.status === "rejected" ? String(result.reason) : "ok")),
+      );
+    }
 
     return new Response(
       JSON.stringify({ ok: true, newAlerts: newKeys.length, delivered }),

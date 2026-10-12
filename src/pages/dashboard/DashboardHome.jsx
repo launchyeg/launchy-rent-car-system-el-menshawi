@@ -1,10 +1,14 @@
-import { FiCalendar, FiFileText, FiShield, FiTool } from "react-icons/fi";
+import { useState } from "react";
+import { FiCalendar, FiFileText, FiPlus, FiShield, FiTool } from "react-icons/fi";
 import { FaCar } from "react-icons/fa6";
 import StatCard from "../../dashboard/ui/StatCard";
-import DataTable from "../../dashboard/ui/DataTable";
-import StatusBadge from "../../dashboard/ui/StatusBadge";
+import Modal from "../../dashboard/ui/Modal";
+import { useToast } from "../../dashboard/ui/Toast";
+import BookingAgenda from "../../dashboard/features/bookings/BookingAgenda";
+import BookingForm from "../../dashboard/features/bookings/BookingForm";
+import { createBooking } from "../../dashboard/features/bookings/bookingsApi";
 import { useAlerts } from "../../dashboard/alerts/AlertsProvider";
-import { getBookingFlags } from "../../dashboard/lib/alerts";
+import { getBookingAlert, getBookingFlags } from "../../dashboard/lib/alerts";
 
 const toneBorderClasses = {
   red: "border-red-400",
@@ -23,7 +27,45 @@ const alertIcons = {
 // All the data-fetching and alert computation lives in AlertsProvider
 // (mounted in DashboardLayout) — this page just renders it.
 export default function DashboardHome() {
-  const { cars, bookings, alerts, bookingAlerts, loading } = useAlerts();
+  const { cars, bookings, alerts, loading, refresh } = useAlerts();
+  const { showToast } = useToast();
+  const [bookingFormOpen, setBookingFormOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Quick booking straight from the home page — same form and API as
+  // BookingsPage; the alerts reload afterwards so the new booking shows up.
+  const handleCreateBooking = async (payload) => {
+    setSubmitting(true);
+    try {
+      await createBooking(payload);
+      showToast("تمت إضافة الحجز");
+      setBookingFormOpen(false);
+      await refresh();
+    } catch (error) {
+      showToast(error.message ?? "حدث خطأ أثناء الحفظ", { tone: "error" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Same day-by-day view as BookingsPage, limited to bookings inside the
+  // alert window: a pickup alert becomes a طالعة event on pickup_date, a
+  // return alert a داخلة event on return_date.
+  const bookingEvents = bookings
+    .map((record) => {
+      const alert = getBookingAlert(record.pickup_date, record.return_date);
+      if (!alert) return null;
+      const isOut = alert.type === "pickup";
+      return {
+        type: isOut ? "out" : "in",
+        date: isOut ? record.pickup_date : record.return_date,
+        record,
+        status: { label: alert.label, tone: alert.tone },
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.type === "in" ? -1 : 1));
+  const statusByBooking = new Map(bookingEvents.map((event) => [event.record.id, event.status]));
 
   const currentBookingsCount = bookings.filter(
     (b) => getBookingFlags(b.pickup_date, b.return_date).isCurrentlyBooked,
@@ -35,14 +77,30 @@ export default function DashboardHome() {
 
   return (
     <div className="grid gap-6">
-      <h1 className="font-heading text-xl font-bold text-ink">لوحة التحكم</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="font-heading text-xl font-bold text-ink">لوحة التحكم</h1>
+        <button
+          type="button"
+          onClick={() => setBookingFormOpen(true)}
+          disabled={cars.length === 0}
+          className="btn btn-primary disabled:opacity-60"
+        >
+          <FiPlus aria-hidden="true" />
+          إضافة حجز
+        </button>
+      </div>
 
       {loading ? (
         <p className="text-sm text-ink-soft">جارٍ التحميل…</p>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            <StatCard label="إجمالي السيارات" value={cars.length} icon={FaCar} />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+            <StatCard
+              label="إجمالي السيارات"
+              value={cars.length}
+              icon={FaCar}
+              className="col-span-2 sm:col-span-1"
+            />
             <StatCard
               label="الحجوزات الحالية"
               value={currentBookingsCount}
@@ -69,35 +127,11 @@ export default function DashboardHome() {
             <h2 className="mb-3 font-heading text-lg font-bold text-ink">
               تنبيهات الحجوزات
             </h2>
-            {bookingAlerts.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border bg-white px-6 py-8 text-center text-sm text-ink-soft">
-                لا توجد حجوزات تحتاج متابعة الآن.
-              </div>
-            ) : (
-              <DataTable
-                keyField="key"
-                rows={bookingAlerts}
-                columns={[
-                  { key: "index", header: "#", render: (_r, i) => i + 1 },
-                  {
-                    key: "event",
-                    header: "الحالة",
-                    render: (r) => <StatusBadge label={r.label} tone={r.tone} />,
-                  },
-                  { key: "car", header: "السيارة", render: (r) => r.car },
-                  {
-                    key: "customer_name",
-                    header: "اسم العميل",
-                    render: (r) => r.customer_name,
-                  },
-                  {
-                    key: "customer_phone",
-                    header: "رقم الهاتف",
-                    render: (r) => r.customer_phone,
-                  },
-                ]}
-              />
-            )}
+            <BookingAgenda
+              events={bookingEvents}
+              getStatus={(record) => statusByBooking.get(record.id)}
+              emptyMessage="لا توجد حجوزات تحتاج متابعة الآن."
+            />
           </div>
 
           <div>
@@ -131,6 +165,21 @@ export default function DashboardHome() {
           </div>
         </>
       )}
+
+      <Modal
+        open={bookingFormOpen}
+        onClose={() => setBookingFormOpen(false)}
+        title="إضافة حجز"
+      >
+        <BookingForm
+          key={bookingFormOpen ? "open" : "closed"}
+          record={null}
+          cars={cars}
+          onSubmit={handleCreateBooking}
+          onCancel={() => setBookingFormOpen(false)}
+          submitting={submitting}
+        />
+      </Modal>
     </div>
   );
 }

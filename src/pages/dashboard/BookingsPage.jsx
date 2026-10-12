@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { FiCalendar, FiEdit2, FiPlus, FiTrash2 } from "react-icons/fi";
-import DataTable from "../../dashboard/ui/DataTable";
-import StatusBadge from "../../dashboard/ui/StatusBadge";
+import {
+  FiArrowDownLeft,
+  FiArrowUpRight,
+  FiCalendar,
+  FiPlus,
+  FiUsers,
+  FiX,
+} from "react-icons/fi";
 import AlertLegend from "../../dashboard/ui/AlertLegend";
 import SearchInput from "../../dashboard/ui/SearchInput";
 import Modal from "../../dashboard/ui/Modal";
@@ -9,6 +14,16 @@ import ConfirmDialog from "../../dashboard/ui/ConfirmDialog";
 import EmptyState from "../../dashboard/ui/EmptyState";
 import { useToast } from "../../dashboard/ui/Toast";
 import BookingForm from "../../dashboard/features/bookings/BookingForm";
+import BookingAgenda from "../../dashboard/features/bookings/BookingAgenda";
+import {
+  MOVEMENTS,
+  PERIODS,
+  matchesMovement,
+  matchesQuery,
+  movementEvents,
+  periodRange,
+  toISODate,
+} from "../../dashboard/features/bookings/bookingSearch";
 import {
   createBooking,
   deleteBooking,
@@ -17,8 +32,6 @@ import {
 } from "../../dashboard/features/bookings/bookingsApi";
 import { listCars } from "../../dashboard/features/cars/carsApi";
 import { getBookingAlert, getBookingFlags } from "../../dashboard/lib/alerts";
-import { formatDate } from "../../dashboard/lib/format";
-import { carLabel } from "../../dashboard/lib/carLabel";
 
 // Bookings aren't an expiry concept, so this maps to a single display
 // badge, most-urgent first. Within the alert window (see getBookingAlert
@@ -57,11 +70,35 @@ const LEGEND_ITEMS = [
   { tone: "gray", label: "منتهية", condition: "انتهى الحجز بالفعل (تاريخ الاستلام مضى)" },
 ];
 
-function bookingSearchText(record) {
-  return [carLabel(record.cars), record.customer_name, record.customer_phone]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
+const movementIcons = {
+  all: FiCalendar,
+  out: FiArrowUpRight,
+  in: FiArrowDownLeft,
+  with_customers: FiUsers,
+};
+
+function chipClass(active) {
+  return `rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+    active
+      ? "border-primary bg-primary text-white"
+      : "border-border bg-white text-ink-soft hover:border-primary hover:text-primary"
+  }`;
+}
+
+function DateInput({ label, value, onChange }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-semibold text-ink-soft">{label}</span>
+      <span className="flex items-center gap-2 rounded-lg border border-border bg-white px-3.5 py-2.5 transition-colors focus-within:border-primary">
+        <input
+          type="date"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full text-sm outline-none"
+        />
+      </span>
+    </label>
+  );
 }
 
 export default function BookingsPage() {
@@ -69,8 +106,10 @@ export default function BookingsPage() {
   const [records, setRecords] = useState([]);
   const [cars, setCars] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [pickupDateFilter, setPickupDateFilter] = useState("");
-  const [returnDateFilter, setReturnDateFilter] = useState("");
+  const [movement, setMovement] = useState("all");
+  const [period, setPeriod] = useState("any");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
@@ -144,36 +183,44 @@ export default function BookingsPage() {
     }
   };
 
-  const columns = [
-    { key: "index", header: "#", render: (_record, index) => index + 1 },
-    { key: "car", header: "السيارة", render: (record) => carLabel(record.cars) },
-    { key: "customer_name", header: "اسم العميل", render: (record) => record.customer_name },
-    { key: "customer_phone", header: "رقم الهاتف", render: (record) => record.customer_phone },
-    {
-      key: "pickup",
-      header: "تاريخ التسليم",
-      render: (record) => formatDate(record.pickup_date),
-    },
-    {
-      key: "return",
-      header: "تاريخ الاستلام",
-      render: (record) => formatDate(record.return_date),
-    },
-    {
-      key: "status",
-      header: "الحالة",
-      render: (record) => {
-        const status = bookingStatus(record.pickup_date, record.return_date);
-        return <StatusBadge label={status.label} tone={status.tone} />;
-      },
-    },
-  ];
+  const resetFilters = () => {
+    setSearchTerm("");
+    setMovement("all");
+    setPeriod("any");
+    setCustomFrom("");
+    setCustomTo("");
+  };
 
-  const term = searchTerm.trim().toLowerCase();
-  const filteredRecords = records
-    .filter((record) => !term || bookingSearchText(record).includes(term))
-    .filter((record) => !pickupDateFilter || record.pickup_date === pickupDateFilter)
-    .filter((record) => !returnDateFilter || record.return_date === returnDateFilter);
+  // With no period the page shows what's coming from today on — unless
+  // something is typed in the search, then it searches all history too.
+  // (out/in/with_customers already look forward from today on their own;
+  // see matchesMovement.)
+  const range = periodRange(period, { from: customFrom, to: customTo });
+  const eventsRange =
+    range ?? (searchTerm.trim() ? null : { from: toISODate(new Date()), to: null });
+  const rangeFor = (value) => (value === "all" ? eventsRange : range);
+
+  // The text search applies first, so each movement card's count reflects
+  // it; then the chosen movement/period narrows the list.
+  const baseRecords = records.filter((record) => matchesQuery(record, searchTerm));
+  const movementCounts = Object.fromEntries(
+    MOVEMENTS.map((option) => [
+      option.value,
+      baseRecords.filter((record) => matchesMovement(record, option.value, rangeFor(option.value)))
+        .length,
+    ]),
+  );
+  const filteredRecords = baseRecords.filter((record) =>
+    matchesMovement(record, movement, rangeFor(movement)),
+  );
+  const events = movementEvents(
+    filteredRecords,
+    movement === "with_customers" ? "all" : movement,
+    eventsRange,
+  );
+  const outEventCount = events.filter((event) => event.type === "out").length;
+
+  const hasFilters = searchTerm.trim() || movement !== "all" || period !== "any";
 
   return (
     <div className="grid gap-5">
@@ -193,39 +240,85 @@ export default function BookingsPage() {
       <AlertLegend items={LEGEND_ITEMS} />
 
       {records.length > 0 && (
-        <div className="grid gap-3">
+        <div className="grid gap-4 rounded-2xl bg-white p-4 shadow-card">
+          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+            {MOVEMENTS.map((option) => {
+              const Icon = movementIcons[option.value];
+              const active = movement === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setMovement(option.value)}
+                  aria-pressed={active}
+                  className={`flex items-center justify-between gap-3 rounded-xl border p-3 text-start transition-colors ${
+                    active ? "border-primary bg-tag-bg" : "border-border-soft hover:border-primary"
+                  }`}
+                >
+                  <span className="grid gap-0.5">
+                    <span
+                      className={`text-xs font-semibold ${active ? "text-primary" : "text-ink-soft"}`}
+                    >
+                      {option.label}
+                    </span>
+                    <span className="font-heading text-2xl font-bold text-ink">
+                      {movementCounts[option.value]}
+                    </span>
+                  </span>
+                  <span
+                    className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                      active ? "bg-primary text-white" : "bg-surface-alt text-ink-soft"
+                    }`}
+                  >
+                    <Icon aria-hidden="true" />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {PERIODS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setPeriod(option.value)}
+                aria-pressed={period === option.value}
+                className={chipClass(period === option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          {period === "custom" && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <DateInput label="من تاريخ" value={customFrom} onChange={setCustomFrom} />
+              <DateInput label="إلى تاريخ" value={customTo} onChange={setCustomTo} />
+            </div>
+          )}
+
           <SearchInput
             value={searchTerm}
             onChange={setSearchTerm}
-            placeholder="ابحث بالسيارة، اسم العميل، رقم الهاتف…"
+            placeholder="ابحث بأي كلمة: العميل، التليفون، السيارة، المالك، ملاحظة، تاريخ…"
           />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-semibold text-ink-soft">
-                بحث بتاريخ التسليم
-              </span>
-              <span className="flex items-center gap-2 rounded-lg border border-border bg-white px-3.5 py-2.5 transition-colors focus-within:border-primary">
-                <input
-                  type="date"
-                  value={pickupDateFilter}
-                  onChange={(event) => setPickupDateFilter(event.target.value)}
-                  className="w-full text-sm outline-none"
-                />
-              </span>
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-semibold text-ink-soft">
-                بحث بتاريخ الاستلام
-              </span>
-              <span className="flex items-center gap-2 rounded-lg border border-border bg-white px-3.5 py-2.5 transition-colors focus-within:border-primary">
-                <input
-                  type="date"
-                  value={returnDateFilter}
-                  onChange={(event) => setReturnDateFilter(event.target.value)}
-                  className="w-full text-sm outline-none"
-                />
-              </span>
-            </label>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-soft pt-3">
+            <p className="text-sm text-ink-soft">
+              <span className="font-bold text-ink">{events.length}</span> حركة (
+              {outEventCount} طالعة، {events.length - outEventCount} داخلة)
+            </p>
+            {hasFilters && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className={`inline-flex items-center gap-1.5 ${chipClass(false)}`}
+              >
+                <FiX aria-hidden="true" />
+                مسح الفلاتر
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -255,30 +348,11 @@ export default function BookingsPage() {
           }
         />
       ) : (
-        <DataTable
-          columns={columns}
-          rows={filteredRecords}
-          emptyMessage="لا توجد نتائج مطابقة للبحث."
-          renderActions={(record) => (
-            <>
-              <button
-                type="button"
-                onClick={() => openEditForm(record)}
-                aria-label="تعديل"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-ink transition-colors hover:border-primary hover:text-primary"
-              >
-                <FiEdit2 aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeletingRecord(record)}
-                aria-label="حذف"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-ink transition-colors hover:border-red-500 hover:text-red-600"
-              >
-                <FiTrash2 aria-hidden="true" />
-              </button>
-            </>
-          )}
+        <BookingAgenda
+          events={events}
+          getStatus={(record) => bookingStatus(record.pickup_date, record.return_date)}
+          onEdit={openEditForm}
+          onDelete={setDeletingRecord}
         />
       )}
 
