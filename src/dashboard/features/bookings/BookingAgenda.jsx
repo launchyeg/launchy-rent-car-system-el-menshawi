@@ -1,7 +1,9 @@
 import { FiArrowDownLeft, FiArrowUpRight, FiEdit2, FiPhone, FiTrash2 } from "react-icons/fi";
+import { FaWhatsapp } from "react-icons/fa6";
 import StatusBadge from "../../ui/StatusBadge";
 import { carLabel } from "../../lib/carLabel";
 import { formatDate } from "../../lib/format";
+import { whatsappLink } from "../../lib/phone";
 import { groupByDate, rentalDays, toISODate } from "./bookingSearch";
 
 const typeStyles = {
@@ -118,6 +120,18 @@ export default function BookingAgenda({
                           >
                             <FiPhone aria-hidden="true" />
                             {record.customer_phone}
+                          </a>
+                        )}
+                        {whatsappLink(record.customer_phone) && (
+                          <a
+                            href={whatsappLink(record.customer_phone)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`واتساب ${record.customer_name}`}
+                            title="فتح محادثة واتساب"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-base text-emerald-600 transition-colors hover:bg-emerald-500 hover:text-white"
+                          >
+                            <FaWhatsapp aria-hidden="true" />
                           </a>
                         )}
                       </p>
